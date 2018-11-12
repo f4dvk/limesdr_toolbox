@@ -25,7 +25,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include "limesdr_util.h"
+
+// Global variable used by the signal handler and capture/encoding loop
+static int want_quit = 0;
+
+// Global signal handler for trapping SIGINT, SIGTERM, and SIGQUIT
+static void signal_handler(int signal)
+{
+	want_quit = 1;
+}
 
 int main(int argc, char** argv)
 {
@@ -123,7 +133,7 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	LMS_StartStream(&tx_stream);
+	//LMS_StartStream(&tx_stream);
 	if(rrc>1)
 		LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, true);
 	else
@@ -148,9 +158,23 @@ int main(int argc, char** argv)
 
 	
 	
+	signal(SIGINT, signal_handler);
+        signal(SIGTERM, signal_handler);
+        signal(SIGQUIT, signal_handler);
+        signal(SIGKILL, signal_handler);
+        signal(SIGPIPE, signal_handler);
+
 	tx_meta.timestamp = postpone_emitting_sec * sample_rate;
-	while( 1 ) {
+	bool FirstTx=true;
+
+	while( !want_quit ) {
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
+		if(FirstTx)
+		{
+			LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
+			LMS_StartStream(&tx_stream);
+			FirstTx=false;
+		}
 		if ( nb_samples_to_send == 0 ) { // no more samples to send, quit
 			break;
 		}
