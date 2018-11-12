@@ -35,11 +35,12 @@ int main(int argc, char** argv)
 		       "  -b <BANDWIDTH_CALIBRATING> (default: 8e6)\n"
 		       "  -s <SAMPLE_RATE> (default: 2e6)\n"
 		       "  -g <GAIN_NORMALIZED> (default: 1)\n"
-                       "  -l <BUFFER_SIZE> (default: 1024*1024)\n"
+               "  -l <BUFFER_SIZE> (default: 1024*1024)\n"
 		       "  -p <POSTPONE_EMITTING_SEC> (default: 3)\n"
 		       "  -d <DEVICE_INDEX> (default: 0)\n"
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (BAND1 | BAND2) (default: BAND1)\n"
+			   "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
 		       "  -i <INPUT_FILENAME> (default: stdin)\n");
 		return 1;
 	}
@@ -49,9 +50,10 @@ int main(int argc, char** argv)
 	double sample_rate = 2e6;
 	double gain = 1;
 	unsigned int buffer_size = 1024*10;
-	double postpone_emitting_sec = 3;
+	double postpone_emitting_sec = 0.5;
 	unsigned int device_i = 0;
 	unsigned int channel = 0;
+	int rrc=1;
 	char* antenna = "BAND1";
 	char* input_filename = NULL;
 	for ( i = 1; i < argc-1; i += 2 ) {
@@ -64,6 +66,7 @@ int main(int argc, char** argv)
 		else if (strcmp(argv[i], "-d") == 0) { device_i = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-c") == 0) { channel = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-a") == 0) { antenna = argv[i+1]; }
+		else if (strcmp(argv[i], "-r") == 0) { rrc = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-i") == 0) { input_filename = argv[i+1]; }
 	}
 	if ( freq == 0 ) {
@@ -89,6 +92,7 @@ int main(int argc, char** argv)
 	}
 	lms_device_t* device = NULL;
 	double host_sample_rate;
+	if(rrc>1) sample_rate=sample_rate*rrc; // Upsampling
 	if ( limesdr_init( sample_rate,
 			   freq,
 			   bandwidth_calibrating,
@@ -104,8 +108,8 @@ int main(int argc, char** argv)
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 	lms_stream_t tx_stream = {
 		.channel = channel,
-		.fifoSize = 2 * buffer_size,
-		.throughputVsLatency = 1,
+		.fifoSize = buffer_size,
+		.throughputVsLatency = 0.2,
 		.isTx = LMS_CH_TX,
 		.dataFmt = LMS_FMT_I16
 	};
@@ -113,7 +117,17 @@ int main(int argc, char** argv)
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
 		return 1;
 	}
+	if(SetGFIR(device,rrc)<0)
+	{
+		fprintf(stderr, "SetGFIR() : %s\n", LMS_GetLastErrorMessage());
+		return -1;
+	}
+
 	LMS_StartStream(&tx_stream);
+	if(rrc>1)
+		LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, true);
+	else
+			LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, false);
 	lms_stream_meta_t tx_meta;
 	tx_meta.waitForTimestamp = true;
 	tx_meta.flushPartialPacket = false;
@@ -121,8 +135,8 @@ int main(int argc, char** argv)
 	LMS_EnableChannel(device, LMS_CH_RX, 0, true);
 	lms_stream_t rx_stream = {
 		.channel = 0,
-		.fifoSize = buffer_size * sizeof(*buff),
-		.throughputVsLatency = 1,
+		.fifoSize = buffer_size ,
+		.throughputVsLatency = 0.2,
 		.isTx = LMS_CH_RX,
 		.dataFmt = LMS_FMT_I16
 	};
@@ -132,6 +146,8 @@ int main(int argc, char** argv)
 	}
 	LMS_StartStream(&rx_stream);
 
+	
+	
 	tx_meta.timestamp = postpone_emitting_sec * sample_rate;
 	while( 1 ) {
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );

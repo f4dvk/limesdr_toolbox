@@ -45,5 +45,6 @@ int limesdr_set_channel( const unsigned int freq,
 			 const char* antenna,
 			 const int is_tx,
 			 lms_device_t* device );
-
+			 
+int SetGFIR(lms_device_t* device,int Upsample);
 #endif /* !_LIMESDR_UTIL_H_ */
