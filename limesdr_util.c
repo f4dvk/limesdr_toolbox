@@ -41,6 +41,7 @@ int limesdr_set_channel(const unsigned int freq,
 		fprintf(stderr,"Using calibration file\n");
 		WithCalibration = false;
 	}
+	WithCalibration = true;
 	int nb_antenna = LMS_GetAntennaList(device, is_tx, channel, NULL);
 	lms_name_t list[nb_antenna];
 	LMS_GetAntennaList(device, is_tx, channel, list);
