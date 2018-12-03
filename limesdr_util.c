@@ -364,9 +364,9 @@ int SetGFIR(lms_device_t *device, int Upsample)
 	double Gain2 = 1.743865967;
 
 	for (int i = 0; i < 119; i++)
-		xcoeffs4[i] = xcoeffs4[i] / Gain4;
+		xcoeffs4[i] = xcoeffs4[i]*4.0 / Gain4;
 	for (int i = 0; i < 119; i++)
-		xcoeffs2[i] = xcoeffs2[i] / Gain2;
+		xcoeffs2[i] = xcoeffs2[i]*2.0 / Gain2;
 
 	double *xcoeffs = NULL;
 	if (Upsample == 2)
