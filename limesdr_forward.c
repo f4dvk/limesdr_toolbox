@@ -100,7 +100,8 @@ int main(int argc, char** argv)
 			   antenna_output,
 			   LMS_CH_TX,
 			   &device,
-			   &host_sample_rate) < 0 ) {
+			   &host_sample_rate,
+			   true) < 0 ) {
 		return 1;
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
@@ -111,7 +112,7 @@ int main(int argc, char** argv)
 				  channel_input,
 				  antenna_input,
 				  LMS_CH_RX,
-				  device ) < 0 ) {
+				  device,true ) < 0 ) {
 		return 1;
 	}
 	lms_stream_t tx_stream = {

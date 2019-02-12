@@ -51,7 +51,8 @@ int main(int argc, char** argv)
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (BAND1 | BAND2) (default: BAND1)\n"
 			   "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
-		       "  -i <INPUT_FILENAME> (default: stdin)\n");
+		       "  -i <INPUT_FILENAME> (default: stdin)\n"
+			   "  -q <CalibrationEnable> (default: 1)\n");
 		return 1;
 	}
 	int i;
@@ -66,6 +67,7 @@ int main(int argc, char** argv)
 	int rrc=1;
 	char* antenna = "BAND1";
 	char* input_filename = NULL;
+	bool WithCalibration=true;
 	for ( i = 1; i < argc-1; i += 2 ) {
 		if      (strcmp(argv[i], "-f") == 0) { freq = atof( argv[i+1] ); }
 		else if (strcmp(argv[i], "-b") == 0) { bandwidth_calibrating = atof( argv[i+1] ); }
@@ -78,6 +80,7 @@ int main(int argc, char** argv)
 		else if (strcmp(argv[i], "-a") == 0) { antenna = argv[i+1]; }
 		else if (strcmp(argv[i], "-r") == 0) { rrc = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-i") == 0) { input_filename = argv[i+1]; }
+		else if (strcmp(argv[i], "-q") == 0) { WithCalibration = atoi(argv[i+1]); }
 	}
 	if ( freq == 0 ) {
 		fprintf( stderr, "ERROR: invalid frequency : %d\n", freq );
@@ -112,7 +115,8 @@ int main(int argc, char** argv)
 			   antenna,
 			   LMS_CH_TX,
 			   &device,
-			   &host_sample_rate) < 0 ) {
+			   &host_sample_rate,
+			   WithCalibration) < 0 ) {
 		return 1;
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
@@ -142,7 +146,7 @@ int main(int argc, char** argv)
 	tx_meta.waitForTimestamp = true;
 	tx_meta.flushPartialPacket = false;
 
-	LMS_EnableChannel(device, LMS_CH_RX, 0, true);
+	/*LMS_EnableChannel(device, LMS_CH_RX, 0, true);
 	lms_stream_t rx_stream = {
 		.channel = 0,
 		.fifoSize = buffer_size ,
@@ -155,7 +159,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	LMS_StartStream(&rx_stream);
-
+	*/
 	
 	
 	signal(SIGINT, signal_handler);
@@ -171,7 +175,7 @@ int main(int argc, char** argv)
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
 		if(FirstTx)
 		{
-			LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
+			//LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
 			LMS_StartStream(&tx_stream);
 			FirstTx=false;
 		}
