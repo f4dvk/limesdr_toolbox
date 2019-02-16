@@ -70,7 +70,7 @@ int limesdr_set_channel(const unsigned int freq,
 			fprintf(stderr, "ERROR: unable to found antenna : %s\n", antenna);
 			return -1;
 		}
-		//LMS_SetNormalizedGain( device, is_tx, channel, 0 );
+		
 
 		if (LMS_SetLOFrequency(device, is_tx, channel, freq) < 0)
 		{
@@ -80,6 +80,7 @@ int limesdr_set_channel(const unsigned int freq,
 
 		if (gain >= 0)
 		{
+			fprintf(stderr,"Set %s gain to %f\n",is_tx?"TX":"RX",gain);
 			if (LMS_SetNormalizedGain(device, is_tx, channel, gain) < 0)
 			{
 				fprintf(stderr, "LMS_SetNormalizedGain() : %s\n", LMS_GetLastErrorMessage());
@@ -380,9 +381,9 @@ int SetGFIR(lms_device_t *device, int Upsample)
 		xcoeffs = xcoeffs4;
 	if (xcoeffs != NULL)
 	{
-		if (LMS_SetGFIRCoeff(device, LMS_CH_TX, 0, LMS_GFIR3, xcoeffs, 119) < 0)
+		if (LMS_SetGFIRCoeff(device, LMS_CH_RX, 0, LMS_GFIR3, xcoeffs, 119) < 0)
 			fprintf(stderr, "Unable to set coeff GFIR3");
-		return (LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, true));
+		return (LMS_SetGFIR(device, LMS_CH_RX, 0, LMS_GFIR3, true));
 	}
 	else
 		return 0;
@@ -448,21 +449,23 @@ int limesdr_init(const double sample_rate,
 		return -1;
 	}
 	int is_not_tx = (is_tx == LMS_CH_TX) ? LMS_CH_RX : LMS_CH_TX;
-	if (LMS_EnableChannel(*device, is_not_tx, channel, false) < 0)
+	if (LMS_EnableChannel(*device, is_not_tx, channel, true) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelRx() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}
+	/* // Not for Mini
 	if (LMS_EnableChannel(*device, is_not_tx, 1 - channel, false) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelRx2() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
-	}
+	}*/
+	/*//not for mini
 	if (LMS_EnableChannel(*device, is_tx, 1 - channel, false) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelTx1() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
-	}
+	}*/
 	if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
@@ -478,11 +481,16 @@ int limesdr_init(const double sample_rate,
 		fprintf(stderr, "LMS_GetSampleRate() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
 	}
-
+	else
+		fprintf(stderr, "LMS_GetSampleRate() : %f\n", host_sample_rate);
+LMS_SetLPFBW(*device,is_tx,0,bandwidth_calibrating);
+	//LMS_SetLPF(*device,is_tx,0,1);
+	LMS_SetLPFBW(*device,is_not_tx,0,bandwidth_calibrating);
+	//LMS_SetLPF(*device,is_not_tx,0,1);
 	if (limesdr_set_channel(freq, bandwidth_calibrating, gain, channel, antenna, is_tx, *device, WithCalibration) < 0)
 	{
 		return -1;
 	}
-
+	
 	return 0;
 }
