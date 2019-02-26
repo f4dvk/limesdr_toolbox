@@ -104,9 +104,9 @@ int limesdr_set_channel(const unsigned int freq,
 		{
             fprintf(stderr, "Use %s Calibration\n","limemini.cal");
 			
-            
+            LMS_SetNormalizedGain(device, is_tx, channel, 0);
 			LoadCal(device, "limemini.cal");
-			LMS_SetNormalizedGain(device, is_tx, channel, 0);
+			
 		}
 			
 		/*
@@ -196,6 +196,9 @@ int16_t LoadCal(lms_device_t *device, char *FileCalib)
 	fscanf(file, "dci=%hd\n", &dci);
 	fscanf(file, "dcq=%hd\n", &dcq);
 
+	 LMS_WriteParam(device,LMS7_DCMODE,1);
+	LMS_WriteParam(device,LMS7_PD_DCDAC_TXA,0);
+	LMS_WriteParam(device,LMS7_PD_DCCMP_TXA,0);
 	//restore results
 	LMS_WriteParam(device, LMS7_GCORRI_TXTSP, gcorri);
 	LMS_WriteParam(device, LMS7_GCORRQ_TXTSP, gcorrq);
@@ -204,6 +207,7 @@ int16_t LoadCal(lms_device_t *device, char *FileCalib)
 	WriteAnalogDC(device, LMS7_DC_TXAQ.address, dcq);
 
 	// DEBUG
+    /*
 	fprintf(stderr, "reg011D=%hu\n", reg011D);
 	fprintf(stderr, "reg011E=%hu\n", reg011E);
 	fprintf(stderr, "div_loch=%hu\n", div_loch);
@@ -216,7 +220,7 @@ int16_t LoadCal(lms_device_t *device, char *FileCalib)
 	fprintf(stderr, "phaseOffset=%hu\n", phaseOffset);
 	fprintf(stderr, "dci=%hd\n", dci);
 	fprintf(stderr, "dcq=%hd\n", dcq);
-
+    */
 	return 0;
 }
 
@@ -590,11 +594,11 @@ int limesdr_init(const double sample_rate,
 		/* code */
 	}
 
-	/*if (LMS_Reset(*device) < 0)
+	if (LMS_Reset(*device) < 0)
 	{
 		fprintf(stderr, "LMS_Reset() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
-	}*/
+	}
 	if (LMS_Init(*device) < 0)
 	{
 		fprintf(stderr, "LMS_Init() : %s\n", LMS_GetLastErrorMessage());
@@ -618,6 +622,7 @@ int limesdr_init(const double sample_rate,
 		fprintf(stderr, "LMS_EnableChannelTx1() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}*/
+	//LMS_SetNormalizedGain(*device, is_tx, channel, 0);
 	if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
