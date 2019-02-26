@@ -49,4 +49,7 @@ int limesdr_set_channel( const unsigned int freq,
 			 bool WithCalibration );
 			 
 int SetGFIR(lms_device_t* device,int Upsample);
+int16_t LoadCal(lms_device_t *device,char *FileCalib);
+int16_t SaveCal(lms_device_t *device,char *FileCalib);
+
 #endif /* !_LIMESDR_UTIL_H_ */

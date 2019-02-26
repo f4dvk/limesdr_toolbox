@@ -175,7 +175,7 @@ int main(int argc, char** argv)
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
 		if(FirstTx)
 		{
-			//LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
+			LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
 			LMS_StartStream(&tx_stream);
 			FirstTx=false;
 		}
