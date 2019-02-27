@@ -103,6 +103,10 @@ int main(int argc, char** argv)
 			return 1;
 		}
 	}
+    bool isapipe = (fseek(fd, 0, SEEK_CUR) < 0); //Dirty trick to see if it is a pipe or not
+	if (isapipe)
+		fprintf(stderr, "Using IQ live mode\n");
+
 	lms_device_t* device = NULL;
 	double host_sample_rate;
 	if(rrc>1) sample_rate=sample_rate*rrc; // Upsampling
@@ -182,11 +186,17 @@ int main(int argc, char** argv)
 			LMS_StartStream(&tx_stream);
 			FirstTx=false;
 		}
-		if ( nb_samples_to_send == 0 ) { // no more samples to send, quit
-			break;
+		if ( nb_samples_to_send == 0 ) { // no more samples to send, quit if pipe, loop if a file
+            if(!isapipe)
+            {
+                 fseek(fd, 0, SEEK_SET);
+                 continue;
+            }
+            else
+			    break;
 		}
-	        int nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, &tx_meta, 1000 );
-			TotalSampleSent+=nb_samples;
+	    int nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, &tx_meta, 1000 );
+		TotalSampleSent+=nb_samples;
 		if ( nb_samples < 0 ) {
 			fprintf(stderr, "LMS_SendStream() : %s\n", LMS_GetLastErrorMessage());
 			break;
