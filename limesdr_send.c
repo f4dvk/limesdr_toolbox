@@ -176,9 +176,16 @@ int main(int argc, char** argv)
 	bool FirstTx=true;
 	bool Transition=true;
 	int TotalSampleSent=0;
-	memset(buff,0,buffer_size*sizeof(*buff));
-	LMS_SendStream( &tx_stream, buff, buffer_size, NULL, 1000 );
+	
 	while( !want_quit ) {
+		lms_stream_status_t Status;
+		LMS_GetStreamStatus(&tx_stream,&Status);
+		if(Status.fifoFilledCount<Status.fifoSize*0.4)
+		{
+				fprintf(stderr,"Fifo=%d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+				//memset(buff,0,buffer_size*sizeof(*buff));
+				//LMS_SendStream( &tx_stream, buff, (Status.fifoSize-Status.fifoFilledCount)/sizeof( *buff ), NULL, 1000 );
+		}		
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
 		if(FirstTx)
 		{
@@ -195,7 +202,7 @@ int main(int argc, char** argv)
             else
 			    break;
 		}
-	    int nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, &tx_meta, 1000 );
+	    int nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, NULL/*&tx_meta*/, 1000 );
 		TotalSampleSent+=nb_samples;
 		if ( nb_samples < 0 ) {
 			fprintf(stderr, "LMS_SendStream() : %s\n", LMS_GetLastErrorMessage());
