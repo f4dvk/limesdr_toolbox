@@ -98,14 +98,20 @@ int limesdr_set_channel(const unsigned int freq,
 				fprintf(stderr, "LMS_Calibrate() : %s\n", LMS_GetLastErrorMessage());
 				return -1;
 			}
-			SaveCal(device, "limemini.cal");
+			LMS_SetNormalizedGain(device, is_tx, channel, 0);
+			//SaveCal(device, "limemini.cal");
+            if (LMS_SaveConfig(device, "limemini.cal") < 0)
+		    {
+			    fprintf(stderr, "LMS_SaveConfig() : %s\n", LMS_GetLastErrorMessage());
+			    return -1;
+		    }
 		}
 		else
 		{
             fprintf(stderr, "Use %s Calibration\n","limemini.cal");
-			
+			LMS_LoadConfig(device,"limemini.cal");
             LMS_SetNormalizedGain(device, is_tx, channel, 0);
-			LoadCal(device, "limemini.cal");
+			//LoadCal(device, "limemini.cal");
 			
 		}
 			
@@ -622,17 +628,20 @@ int limesdr_init(const double sample_rate,
 		fprintf(stderr, "LMS_EnableChannelTx1() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}*/
-	//LMS_SetNormalizedGain(*device, is_tx, channel, 0);
+	
 	if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}
+	
+	LMS_SetNormalizedGain(*device, is_tx, channel, 0);
 	if (LMS_SetSampleRate(*device, sample_rate, 0) < 0)
 	{
 		fprintf(stderr, "LMS_SetSampleRate() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
 	}
+	
 	if (LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate, NULL) < 0)
 	{
 		fprintf(stderr, "Warning : LMS_GetSampleRate() : %s\n", LMS_GetLastErrorMessage());
@@ -648,6 +657,6 @@ int limesdr_init(const double sample_rate,
 	{
 		return -1;
 	}
-
+	
 	return 0;
 }

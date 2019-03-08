@@ -218,6 +218,7 @@ int main(int argc, char** argv)
 		}
 		tx_meta.timestamp += nb_samples;
 	}
+	LMS_SetNormalizedGain( device, LMS_CH_TX, channel, 0 );
 	LMS_StopStream(&tx_stream);
 	LMS_DestroyStream(device, &tx_stream);
 	free( buff );
