@@ -636,19 +636,22 @@ int limesdr_init(const double sample_rate,
 	}
 	
 	LMS_SetNormalizedGain(*device, is_tx, channel, 0);
-	if (LMS_SetSampleRate(*device, sample_rate, 0) < 0)
+	if(WithCalibration)
 	{
-		fprintf(stderr, "LMS_SetSampleRate() : %s\n", LMS_GetLastErrorMessage());
-		return -1;
-	}
-	
-	if (LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate, NULL) < 0)
-	{
-		fprintf(stderr, "Warning : LMS_GetSampleRate() : %s\n", LMS_GetLastErrorMessage());
-		return -1;
-	}
-	else
-		fprintf(stderr, "LMS_GetSampleRate() return : %f\n", *host_sample_rate);
+		if (LMS_SetSampleRate(*device, sample_rate, 0) < 0)
+		{
+			fprintf(stderr, "LMS_SetSampleRate() : %s\n", LMS_GetLastErrorMessage());
+			return -1;
+		}
+		
+		if (LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate, NULL) < 0)
+		{
+			fprintf(stderr, "Warning : LMS_GetSampleRate() : %s\n", LMS_GetLastErrorMessage());
+			return -1;
+		}
+		else
+			fprintf(stderr, "LMS_GetSampleRate() return : %f\n", *host_sample_rate);
+	}		
 	//LMS_SetLPFBW(*device,is_tx,0,bandwidth_calibrating);
 
 	//	LMS_SetLPFBW(*device,is_not_tx,0,bandwidth_calibrating);
@@ -656,6 +659,11 @@ int limesdr_init(const double sample_rate,
 	if (limesdr_set_channel(freq, bandwidth_calibrating, gain, channel, antenna, is_tx, *device, WithCalibration) < 0)
 	{
 		return -1;
+	}
+	if(!WithCalibration)
+	{
+		LMS_SetSampleRate(*device, sample_rate, 0);
+		LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate,NULL);
 	}
 	
 	return 0;

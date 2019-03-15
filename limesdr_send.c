@@ -67,7 +67,7 @@ int main(int argc, char** argv)
 	int rrc=1;
 	char* antenna = "BAND1";
 	char* input_filename = NULL;
-	bool WithCalibration=true;
+	bool WithCalibration=false; // Not backward compatible but prevent spike on big PA
 	for ( i = 1; i < argc-1; i += 2 ) {
 		if      (strcmp(argv[i], "-f") == 0) { freq = atof( argv[i+1] ); }
 		else if (strcmp(argv[i], "-b") == 0) { bandwidth_calibrating = atof( argv[i+1] ); }
@@ -126,7 +126,7 @@ int main(int argc, char** argv)
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 	lms_stream_t tx_stream = {
 		.channel = channel,
-		.fifoSize = buffer_size,
+		.fifoSize = buffer_size*20,
 		.throughputVsLatency = 0.2,
 		.isTx = LMS_CH_TX,
 		.dataFmt = LMS_FMT_I16
@@ -176,20 +176,37 @@ int main(int argc, char** argv)
 	bool FirstTx=true;
 	bool Transition=true;
 	int TotalSampleSent=0;
-	
+	int DebugCount=0;
 	while( !want_quit ) {
-		lms_stream_status_t Status;
-		LMS_GetStreamStatus(&tx_stream,&Status);
-		if(Status.fifoFilledCount<Status.fifoSize*0.4)
+		
+			lms_stream_status_t Status;
+			LMS_GetStreamStatus(&tx_stream,&Status);
+
+		if(DebugCount%100==0)
 		{
-				fprintf(stderr,"Fifo=%d/%d\n",Status.fifoFilledCount,Status.fifoSize);
-				//memset(buff,0,buffer_size*sizeof(*buff));
-				//LMS_SendStream( &tx_stream, buff, (Status.fifoSize-Status.fifoFilledCount)/sizeof( *buff ), NULL, 1000 );
+			fprintf(stderr,"Fifo =%d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+			/*
+			if(Status.fifoFilledCount<Status.fifoSize*0.2)
+			{
+					fprintf(stderr,"Fifo nearly empty=%d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+					//memset(buff,0,buffer_size*sizeof(*buff));
+					//LMS_SendStream( &tx_stream, buff, (Status.fifoSize-Status.fifoFilledCount)/sizeof( *buff ), NULL, 1000 );
+			}*/
 		}		
+		DebugCount++;	
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
-		if(FirstTx)
+
+		if((!FirstTx)&&(Status.fifoFilledCount<Status.fifoSize*0.25))
 		{
+			memset(buff,0,buffer_size*sizeof(struct s16iq_sample_s));
+			for(int i=0;i<8;i++)
+				LMS_SendStream( &tx_stream, buff, buffer_size, NULL/*&tx_meta*/, 1000 );
+			fprintf(stderr,"Underflow ! %d\n",Status.fifoFilledCount);
 			
+		}
+		if(FirstTx&&(Status.fifoFilledCount==Status.fifoSize))
+		{
+			fprintf(stderr,"Restart stream %d \n",Status.fifoFilledCount);
 			LMS_StartStream(&tx_stream);
 			FirstTx=false;
 		}
@@ -202,11 +219,15 @@ int main(int argc, char** argv)
             else
 			    break;
 		}
-	    int nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, NULL/*&tx_meta*/, 1000 );
+		int nb_samples;
+		if(!FirstTx)
+	    	 nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, NULL/*&tx_meta*/, 1000 );
+		else
+				 nb_samples = LMS_SendStream( &tx_stream, buff, nb_samples_to_send, NULL/*&tx_meta*/, 000 );
 		TotalSampleSent+=nb_samples;
 		if ( nb_samples < 0 ) {
 			fprintf(stderr, "LMS_SendStream() : %s\n", LMS_GetLastErrorMessage());
-			break;
+			
 		}
 		if(Transition)
 		{
