@@ -43,7 +43,10 @@ int limesdr_set_channel(const unsigned int freq,
 		{
 		}
 		else
-			WithCalibration = true;
+		{
+			fprintf(stderr,"No calibration file found. Perform a calibration. Exiting.\n");
+			exit(1);
+		}	
 	}
 
 	//if (WithCalibration)
