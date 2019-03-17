@@ -52,7 +52,13 @@ int limesdr_set_channel(const unsigned int freq,
 	//if (WithCalibration)
 	{
 		
-		int nb_antenna = LMS_GetAntennaList(device, is_tx, channel, NULL);
+		
+
+		
+
+		if (WithCalibration)
+		{
+			int nb_antenna = LMS_GetAntennaList(device, is_tx, channel, NULL);
 		lms_name_t list[nb_antenna];
 		LMS_GetAntennaList(device, is_tx, channel, list);
 		int antenna_found = 0;
@@ -82,10 +88,6 @@ int limesdr_set_channel(const unsigned int freq,
 			return -1;
 		}
 
-		
-
-		if (WithCalibration)
-		{
             fprintf(stderr, "With Calibration\n");
 			if (gain >= 0)
 		{
@@ -114,6 +116,11 @@ int limesdr_set_channel(const unsigned int freq,
             fprintf(stderr, "Use %s Calibration\n","limemini.cal");
 			LMS_LoadConfig(device,"limemini.cal");
             LMS_SetNormalizedGain(device, is_tx, channel, 0);
+			if (LMS_SetLOFrequency(device, is_tx, channel, freq) < 0)
+		{
+			fprintf(stderr, "LMS_SetLOFrequency() : %s\n", LMS_GetLastErrorMessage());
+			return -1;
+		}
 			//LoadCal(device, "limemini.cal");
 			
 		}
