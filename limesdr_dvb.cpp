@@ -501,7 +501,7 @@ if(ModeDvb == DVBS2)
 }
 else
 {
-	buffer_size=16200*upsample; //FixMe for DVB-S
+	buffer_size=8000*upsample; //FixMe for DVB-S
 }
 
 
@@ -532,7 +532,7 @@ else
 
 
 
-if (isapipe)
+/*if (isapipe)
 	{
 			static unsigned char BufferDummyTS[BUFFER_SIZE*10];	
 		int nin=0xffff;
@@ -544,6 +544,7 @@ if (isapipe)
 		}	
 		
 	}
+*/
 
 int DebugCount=0;
 bool FirstTx=true;
@@ -552,7 +553,11 @@ LMS_StartStream(&tx_stream);
 LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
 while (!want_quit)
 	{
-		lms_stream_status_t Status;
+		
+
+		 RunWithFile(&tx_stream,isapipe);
+
+		 lms_stream_status_t Status;
 			LMS_GetStreamStatus(&tx_stream,&Status);
 		if(!FirstTx&&Status.fifoFilledCount<Status.fifoSize*0.1)
 		{
@@ -567,23 +572,6 @@ while (!want_quit)
 			
 		}	
 		DebugCount++;	
-
-		if(FirstTx&&(Status.fifoFilledCount==Status.fifoSize))
-		{
-			fprintf(stderr,"Restart stream %d \n",Status.fifoFilledCount);
-			//LMS_StartStream(&tx_stream);
-			//LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
-			/*while(Status.fifoFilledCount>Status.fifoSize*3/4)
-			{
-				LMS_GetStreamStatus(&tx_stream,&Status);
-				usleep(100);
-			}	*/
-			FirstTx=false;
-		}	
-		
-		
-
-		 RunWithFile(&tx_stream,isapipe);
 	}	
 
 LMS_SetNormalizedGain( device, LMS_CH_TX, channel, 0 );
