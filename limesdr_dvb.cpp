@@ -559,7 +559,7 @@ while (!want_quit)
 
 		 lms_stream_status_t Status;
 			LMS_GetStreamStatus(&tx_stream,&Status);
-		if(!FirstTx&&Status.fifoFilledCount<Status.fifoSize*0.1)
+		if(Status.fifoFilledCount<Status.fifoSize*0.1)
 		{
 			NullFiller(&tx_stream,1);
 			fprintf(stderr,"Underflow %d\n",Status.fifoFilledCount);		
