@@ -69,7 +69,7 @@ enum
 };
 int Bitrate = 0;
 int ModeDvb = 0;
-#define BUFFER_SIZE (188)
+#define BUFFER_SIZE (188*10)
 int Pilot = 0;
 unsigned int SymbolRate = 0;
 int FEC = CR_1_2;
@@ -497,11 +497,11 @@ else
 
 if(ModeDvb == DVBS2)
 {
-	buffer_size=((ShortFrame)?16200:64800)*upsample; //4Buffer of frame Max
+	buffer_size=((ShortFrame)?16200:64800)*upsample*4; //4 Buffer of frame Max
 }
 else
 {
-	buffer_size=8000*upsample; //FixMe for DVB-S
+	buffer_size=8000*upsample*4; //FixMe for DVB-S
 }
 
 
@@ -511,7 +511,7 @@ else
 		isTx : LMS_CH_TX,
 		channel : channel,
 		fifoSize : buffer_size,
-		throughputVsLatency : 0.0,
+		throughputVsLatency : 0.5,
 		dataFmt : lms_stream_t::LMS_FMT_I16
 	};
 
