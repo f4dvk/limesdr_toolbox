@@ -103,7 +103,7 @@ static uint64_t _timestamp_ns(void)
 
 unsigned int NullFiller(lms_stream_t *tx_stream,int NbPacket)
 {
-	unsigned char NullPacket[188] = {0x47, 0x1F, 0xFF};
+	unsigned char NullPacket[188] = {0x47, 0x1F, 0xFF, 'F','5','O','E','O'};
 	unsigned int TotalSampleWritten = 0;
 	for (int i = 0; i < NbPacket; i++)
 	{
@@ -173,7 +173,7 @@ bool RunWithFile(lms_stream_t *tx_stream,bool live)
 		{
 			//fprintf(stderr,"Pipein=%d\n",nin);
 			usleep(100);
-			//NullFiller(100);
+			//NullFiller(1);
 			return true;
 		}	
 		
@@ -448,6 +448,8 @@ int main(int argc, char **argv)
 	{
 		Bitrate = Dvbs2Init(SymbolRate, FEC, Constellation, Pilot, RO_0_35, upsample,ShortFrame);
 	}
+	
+
 
 	fprintf(stderr, "Net TS bitrate input should be %d\n", Bitrate);
 	if(AskNetBitrate)
@@ -495,13 +497,16 @@ else
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 
+int CoeffBufferSize=((int)sample_rate)/1000000+1; // Coeff for buffer size relativ to samplerate
+fprintf(stderr,"\n\nCoefBufferSize=%d\n",CoeffBufferSize);
+
 if(ModeDvb == DVBS2)
 {
-	buffer_size=((ShortFrame)?16200:64800)*upsample*4; //4 Buffer of frame Max
+	buffer_size=((ShortFrame)?16200:64800)*upsample*CoeffBufferSize; //4 Buffer of frame Max
 }
 else
 {
-	buffer_size=8000*upsample*4; //FixMe for DVB-S
+	buffer_size=8000*upsample*CoeffBufferSize; //FixMe for DVB-S
 }
 
 
@@ -511,7 +516,7 @@ else
 		isTx : LMS_CH_TX,
 		channel : channel,
 		fifoSize : buffer_size,
-		throughputVsLatency : 0.5,
+		throughputVsLatency : 0.0, //Need maybe more at high symbolrate : fixme !
 		dataFmt : lms_stream_t::LMS_FMT_I16
 	};
 
@@ -561,8 +566,12 @@ while (!want_quit)
 			LMS_GetStreamStatus(&tx_stream,&Status);
 		if(Status.fifoFilledCount<Status.fifoSize*0.1)
 		{
-			NullFiller(&tx_stream,1);
-			fprintf(stderr,"Underflow %d\n",Status.fifoFilledCount);		
+			//while(Status.fifoFilledCount<Status.fifoSize*0.9)
+			{
+				LMS_GetStreamStatus(&tx_stream,&Status);
+				NullFiller(&tx_stream,1);
+			  fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);		
+			}	
 			
 		}
 
