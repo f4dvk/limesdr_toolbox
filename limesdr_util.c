@@ -63,9 +63,11 @@ int limesdr_set_channel(const unsigned int freq,
 		LMS_GetAntennaList(device, is_tx, channel, list);
 		int antenna_found = 0;
 		int i;
-
+		// Let antenna automatically selected by API
+		/*
 		for (i = 0; i < nb_antenna; i++)
 		{
+			
 			if (strcmp(list[i], antenna) == 0)
 			{
 				antenna_found = 1;
@@ -80,7 +82,7 @@ int limesdr_set_channel(const unsigned int freq,
 		{
 			fprintf(stderr, "ERROR: unable to found antenna : %s\n", antenna);
 			return -1;
-		}
+		}*/
 
 		if (LMS_SetLOFrequency(device, is_tx, channel, freq) < 0)
 		{

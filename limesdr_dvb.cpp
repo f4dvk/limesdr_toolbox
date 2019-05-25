@@ -31,7 +31,7 @@
 #include "./libdvbmod/libdvbmod/libdvbmod.h"
 #include <getopt.h>
 #include <ctype.h>
- #include <termios.h>
+#include <termios.h>
 #define PROGRAM_VERSION "0.0.1"
 
 #ifndef WINDOWS
@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <netinet/in.h> /* IPPROTO_IP, sockaddr_in, htons(), 
 htonl() */
-#include <arpa/inet.h>  /* inet_addr() */
+#include <arpa/inet.h>	/* inet_addr() */
 #include <netdb.h>
 #else
 
@@ -69,25 +69,24 @@ enum
 };
 int Bitrate = 0;
 int ModeDvb = 0;
-#define BUFFER_SIZE (188*10)
+#define BUFFER_SIZE (188 * 7 * 2)
 int Pilot = 0;
 unsigned int SymbolRate = 0;
 int FEC = CR_1_2;
-bool Simu=false;
-float GainSimu=1.0; // Gain QSB
-float TimingSimu=1.0; //Cycle QSB
+bool Simu = false;
+float GainSimu = 1.0;		// Gain QSB
+float TimingSimu = 1.0; //Cycle QSB
 
 //LimeSpecific
-lms_device_t* device = NULL;
+lms_device_t *device = NULL;
 unsigned int freq = 0;
-	double bandwidth_calibrating = 8e6;
-	double sample_rate = 2e6;
-	double gain = 1;
-	unsigned int buffer_size = 129960;
-	double postpone_emitting_sec = 0.5;
-	unsigned int device_i = 0;
-	unsigned int channel = 0;
-	
+double bandwidth_calibrating = 8e6;
+double sample_rate = 2e6;
+double gain = 1;
+unsigned int buffer_size = 129960;
+double postpone_emitting_sec = 0.5;
+unsigned int device_i = 0;
+unsigned int channel = 0;
 
 static uint64_t _timestamp_ns(void)
 {
@@ -101,9 +100,9 @@ static uint64_t _timestamp_ns(void)
 	return ((int64_t)tp.tv_sec * 1e9 + tp.tv_nsec);
 }
 
-unsigned int NullFiller(lms_stream_t *tx_stream,int NbPacket)
+unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket)
 {
-	unsigned char NullPacket[188] = {0x47, 0x1F, 0xFF, 'F','5','O','E','O'};
+	unsigned char NullPacket[188] = {0x47, 0x1F, 0xFF, 'F', '5', 'O', 'E', 'O'};
 	unsigned int TotalSampleWritten = 0;
 	for (int i = 0; i < NbPacket; i++)
 	{
@@ -122,44 +121,51 @@ unsigned int NullFiller(lms_stream_t *tx_stream,int NbPacket)
 				Frame = Dvbs2_get_IQ();
 
 			//fwrite(Frame, sizeof(sfcmplx), len, output);
-			 LMS_SendStream( tx_stream, Frame, len, NULL, 1000 ); 
+			lms_stream_meta_t meta;
+			meta.flushPartialPacket = true;
+			meta.timestamp = 0;
+			meta.waitForTimestamp = false;
+
+			int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
+			if (nb_samples != len)
+				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+
 			TotalSampleWritten += len;
 		}
 	}
 	return TotalSampleWritten;
 }
 
-
-bool Tune(lms_stream_t *tx_stream,int Frequency)
+bool Tune(lms_stream_t *tx_stream, int Frequency)
 {
-	
-	#define LEN_CARRIER 1000
+
+#define LEN_CARRIER 1000
 	static sfcmplx Frame[LEN_CARRIER];
-	if(Frequency==0)
-	for(int i=0;i<LEN_CARRIER;i++)
-	{
-		Frame[i].re=0x7fff;
-		Frame[i].im=0;
-	}
+	if (Frequency == 0)
+		for (int i = 0; i < LEN_CARRIER; i++)
+		{
+			Frame[i].re = 0x7fff;
+			Frame[i].im = 0;
+		}
 	else
 	{
 		//write a Chirp or Spectrum paint something ?
 	}
-	int nb_samples = LMS_SendStream( tx_stream, Frame, LEN_CARRIER, NULL, 1000 ); 
+	int nb_samples = LMS_SendStream(tx_stream, Frame, LEN_CARRIER, NULL, 1000);
 	//fwrite(Frame, sizeof(sfcmplx), LEN_CARRIER, output);
 	return true;
 }
 
-bool RunWithFile(lms_stream_t *tx_stream,bool live)
+bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 {
 
 	static unsigned char BufferTS[BUFFER_SIZE];
-
+	static char Garbage[188];
 	static uint64_t DebugReceivedpacket = 0;
 	//fprintf(stderr, "Output samplerate is %u\n", CalibrateOutput());
-	if(FEC == -1)
+	if (FEC == -1)
 	{
-		Tune(tx_stream,0);
+		Tune(tx_stream, 0);
 		return true; // Bypass real modulation
 	}
 
@@ -167,46 +173,67 @@ bool RunWithFile(lms_stream_t *tx_stream,bool live)
 	{
 		int nin, nout;
 		int ret = ioctl(fileno(input), FIONREAD, &nin);
-		
-		
-		if ((ret == 0) && (nin <BUFFER_SIZE))
+
+		if ((ret == 0) && (nin < BUFFER_SIZE))
 		{
 			//fprintf(stderr,"Pipein=%d\n",nin);
-			usleep(100);
+			usleep(0);
 			//NullFiller(1);
 			return true;
-		}	
-		
+		}
+
+		if ((ret == 0) && (nin > 48000))
+		{
+			fread(BufferTS, 1, BUFFER_SIZE, input);
+			fprintf(stderr, "Overflow\n");
+		}
 	}
-	
+
 	int NbRead = fread(BufferTS, 1, BUFFER_SIZE, input);
 	DebugReceivedpacket += NbRead;
 	if (NbRead != BUFFER_SIZE)
 	{
 		if (!live)
-        {
-            fseek(input, 0, SEEK_SET);
-            fprintf(stderr,"TS Loop file\n");
-            return true;
+		{
+			fseek(input, 0, SEEK_SET);
+			fprintf(stderr, "TS Loop file\n");
+			return true;
 			//return false; //end of file
-        }
+		}
+		else
+			fprintf(stderr, "NbRead issue\n");
 	}
 
 	if (NbRead % 188 != 0)
 		fprintf(stderr, "TS alignment Error\n");
+	int TsRecoveryIndex = 0;
 	if (BufferTS[0] != 0x47)
 	{
 		fprintf(stderr, "TS Sync Error Try to Resynch\n");
-		for (int i = 0; i < NbRead; i++)
+		bool resync = false;
+
+		for (int i = 0; i < 188; i++)
 		{
-			if (BufferTS[i] == 0x47)
+			if ((BufferTS[i] == 0x47) && (BufferTS[i + 188] == 0x47))
 			{
-				fread(BufferTS, 1, i, input); //Try to read garbage
-				fprintf(stderr, "TS Sync recovery\n");
+				fread(Garbage, 1, i, input); //Try to read garbage
+				fprintf(stderr, "TS Sync recovery %d\n", i);
+				resync = true;
+				TsRecoveryIndex = i;
 				break;
 			}
 		}
-		fread(BufferTS, 1, BUFFER_SIZE, input); //Read the next aligned
+		if (resync == true)
+		{
+			//fread(BufferTS, 1, BUFFER_SIZE, input); //Read the next aligned
+
+			NbRead -= 188;
+		}
+		else
+		{
+			fprintf(stderr, "No resync\n");
+			return true;
+		}
 	}
 	for (int i = 0; i < NbRead; i += 188)
 	{
@@ -214,43 +241,44 @@ bool RunWithFile(lms_stream_t *tx_stream,bool live)
 		/*if ((BufferTS[i + 1] == 0x1F) && (BufferTS[i + 2] == 0xFF))
 			continue; // Remove Null packets*/
 		if (ModeDvb == DVBS)
-			len = DvbsAddTsPacket(BufferTS + i);
+			len = DvbsAddTsPacket(BufferTS + i + TsRecoveryIndex);
 		if (ModeDvb == DVBS2)
-			len = Dvbs2AddTsPacket(BufferTS + i);
+			len = Dvbs2AddTsPacket(BufferTS + i + TsRecoveryIndex);
 
 		if (len != 0)
 		{
+			if(!fpga)
+			{
 			sfcmplx *Frame = NULL;
 			//fprintf(stderr, "Len %d\n", len);
 			if (ModeDvb == DVBS)
 				Frame = Dvbs_get_IQ();
 			if (ModeDvb == DVBS2)
 				Frame = Dvbs2_get_IQ();
-			if(Simu==false)
-			{
-				
-								
-				/*if(0xFFFF-nout<len*sizeof(sfcmplx))
-				{
-					 fprintf(stderr,"dvb2iq Blocked by output to write %d/left %d -> \n",len*sizeof(sfcmplx),nout);
-					 return true;
-				}*/	
-				//fprintf(stderr,"Len = %d\n", len);
-				int nb_samples = LMS_SendStream( tx_stream, Frame, len, NULL, 1000 ); 
-				//fwrite(Frame, sizeof(sfcmplx), len, output);
+
+			lms_stream_meta_t meta;
+			meta.flushPartialPacket = true;
+			meta.timestamp = 0;
+			meta.waitForTimestamp = false;
+			int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
+			if (nb_samples != len)
+				fprintf(stderr, "TimeOUT %d\n", nb_samples);
 			}
-			/*else
+			else
 			{
-				sfcmplx *FrameSimu=(sfcmplx *)malloc(len*sizeof(sfcmplx));
-				for(int j=0;j<len;j++)
-				{
-					static int ComptSample=0;
-					FrameSimu[j].re=Frame[j].re*(0.5+0.5*GainSimu*sin(2*3.1415*(ComptSample/(SymbolRate*TimingSimu)))));
-					FrameSimu[j].im=Frame[j].im*(0.5+0.5*GainSimu*sin(2*3.1415*(ComptSample/(SymbolRate*TimingSimu)))));
-				}
-
-			}*/
-
+					short *Frame = NULL;
+					if (ModeDvb == DVBS)
+							Frame = Dvbs_get_MapIQ();
+			
+			lms_stream_meta_t meta;
+			meta.flushPartialPacket = true;
+			meta.timestamp = 0;
+			meta.waitForTimestamp = false;
+			int nb_samples = LMS_SendStream(tx_stream, Frame, len/2, &meta, 1000);
+			if (nb_samples != len)
+				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+			}
+			
 		}
 	}
 	int n, ret;
@@ -271,7 +299,7 @@ void print_usage()
 {
 
 	fprintf(stderr,
-			"limesdr_dvb -%s\n\
+					"limesdr_dvb -%s\n\
 Usage:\nlimesdr_dvb -s SymbolRate [-i File Input] [-f Fec]  [-m Modulation Type]  [-c Constellation Type] [-p] [-h] \n\
 -i            Input Transport stream File (default stdin) \n\
 -s            SymbolRate in (10000-4000000) \n\
@@ -285,10 +313,11 @@ Usage:\nlimesdr_dvb -s SymbolRate [-i File Input] [-f Fec]  [-m Modulation Type]
 -t 	      Tune frequency in Hertz \n\
 -g 	      Gain (0..1) \n\
 -q 	      {0,1} 0:Use a calibration file 1:Process calibration (!HF peak!)\n\
+-F 	      Enable FPGA mapping\n\
 -h            help (print this help).\n\
 Example : ./limesdr_dvb -s 1000 -f 7/8 -m DVBS2 -c 8PSK -p\n\
 \n",
-			PROGRAM_VERSION);
+					PROGRAM_VERSION);
 
 } /* end function print_usage */
 
@@ -296,20 +325,21 @@ int main(int argc, char **argv)
 {
 	input = stdin;
 	output = stdout;
-	
+
 	int Constellation = M_QPSK;
 	int a;
 	int anyargs = 0;
 	int upsample = 1;
-	bool AskNetBitrate=false;
+	bool AskNetBitrate = false;
 	ModeDvb = DVBS;
-	bool ShortFrame=false;
+	bool ShortFrame = false;
 	//Lime
-	bool WithCalibration=false;
+	bool WithCalibration = false;
+	bool FPGAMapping = false;
 
 	while (1)
 	{
-		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:");
+		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:F");
 
 		if (a == -1)
 		{
@@ -327,12 +357,12 @@ int main(int argc, char **argv)
 			if (NULL == input)
 			{
 				fprintf(stderr, "Unable to open '%s': %s\n",
-						optarg, strerror(errno));
+								optarg, strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 			break;
 		case 's': // SymbolRate in KS
-			SymbolRate = atoi(optarg) ;
+			SymbolRate = atoi(optarg);
 			break;
 		case 'f': // FEC
 			if (strcmp("1/2", optarg) == 0)
@@ -395,7 +425,7 @@ int main(int argc, char **argv)
 			break;
 		case 'd':
 			AskNetBitrate = true;
-			break;	
+			break;
 		case 'r':
 			upsample = atoi(optarg);
 			if (upsample > 4)
@@ -403,15 +433,18 @@ int main(int argc, char **argv)
 			break;
 		case 'v':
 			ShortFrame = true;
-			break;	
+			break;
 		case 't':
 			freq = atof(optarg);
-			break;	
+			break;
 		case 'g':
 			gain = atof(optarg);
 			break;
 		case 'q':
-			WithCalibration = (atoi(optarg)==1);
+			WithCalibration = (atoi(optarg) == 1);
+			break;
+		case 'F':
+			FPGAMapping = true;
 			break;
 		case -1:
 			break;
@@ -433,111 +466,107 @@ int main(int argc, char **argv)
 			exit(1);
 			break;
 		} /* end switch a */
-	}	 /* end while getopt() */
+	}		/* end while getopt() */
 
 	if (SymbolRate == 0)
 	{
 		fprintf(stderr, "SymbolRate is mandatory !\n");
 		exit(0);
 	}
-	if ((ModeDvb == DVBS)&&(FEC>=0))
+	if ((ModeDvb == DVBS) && (FEC >= 0))
 	{
 		Bitrate = DvbsInit(SymbolRate, FEC, Constellation, upsample);
 	}
-	if ((ModeDvb == DVBS2)&&(FEC>=0))
+	if ((ModeDvb == DVBS2) && (FEC >= 0))
 	{
-		Bitrate = Dvbs2Init(SymbolRate, FEC, Constellation, Pilot, RO_0_35, upsample,ShortFrame);
+		Bitrate = Dvbs2Init(SymbolRate, FEC, Constellation, Pilot, RO_0_35, upsample, ShortFrame);
 	}
-	
-
 
 	fprintf(stderr, "Net TS bitrate input should be %d\n", Bitrate);
-	if(AskNetBitrate)
+	if (AskNetBitrate)
 	{
 		fprintf(stdout, "%d\n", Bitrate);
 		exit(1);
 	}
 
-		signal(SIGINT, signal_handler);
-        signal(SIGTERM, signal_handler);
-        signal(SIGQUIT, signal_handler);
-        signal(SIGKILL, signal_handler);
-        signal(SIGPIPE, signal_handler);
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGQUIT, signal_handler);
+	signal(SIGKILL, signal_handler);
+	signal(SIGPIPE, signal_handler);
 
 	bool isapipe = (fseek(input, 0, SEEK_CUR) < 0); //Dirty trick to see if it is a pipe or not
 	if (isapipe)
 	{
-	
-		
-		fprintf(stderr, "Using live mode\n");
-	}	
-	else
-			fprintf(stderr, "Using file mode\n");
 
-// Init LimeSDR
-char* antenna = "BAND1";
+		fprintf(stderr, "Using live mode\n");
+	}
+	else
+		fprintf(stderr, "Using file mode\n");
+
+	// Init LimeSDR
+	char *antenna = "BAND1";
 	double host_sample_rate;
 
-if(upsample>1)
-	 sample_rate=SymbolRate*upsample; // Upsampling
-else 
-	 	 sample_rate=SymbolRate; 
-	if ( limesdr_init( sample_rate,
-			   freq,
-			   bandwidth_calibrating,
-			   gain,
-			   device_i,
-			   channel,
-			   antenna,
-			   LMS_CH_TX,
-			   &device,
-			   &host_sample_rate,
-			   WithCalibration) < 0 ) {
+	if (upsample > 1)
+		sample_rate = SymbolRate * upsample; // Upsampling
+	else
+		sample_rate = SymbolRate;
+	if (limesdr_init(sample_rate,
+									 freq,
+									 bandwidth_calibrating,
+									 gain,
+									 device_i,
+									 channel,
+									 antenna,
+									 LMS_CH_TX,
+									 &device,
+									 &host_sample_rate,
+									 WithCalibration) < 0)
+	{
 		return 1;
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 
-int CoeffBufferSize=((int)sample_rate)/1000000+1; // Coeff for buffer size relativ to samplerate
-fprintf(stderr,"\n\nCoefBufferSize=%d\n",CoeffBufferSize);
+	int CoeffBufferSize = ((int)sample_rate) / 1000000 + 1; // Coeff for buffer size relativ to samplerate
+	fprintf(stderr, "\n\nCoefBufferSize=%d\n", CoeffBufferSize);
 
-if(ModeDvb == DVBS2)
-{
-	buffer_size=((ShortFrame)?16200:64800)*upsample*CoeffBufferSize; //4 Buffer of frame Max
-}
-else
-{
-	buffer_size=8000*upsample*CoeffBufferSize; //FixMe for DVB-S
-}
-
+	if (ModeDvb == DVBS2)
+	{
+		buffer_size = ((ShortFrame) ? 16200 : 64800) * upsample * CoeffBufferSize; //4 Buffer of frame Max
+	}
+	else
+	{
+		buffer_size = 8000 * upsample * CoeffBufferSize; //FixMe for DVB-S
+	}
 
 	lms_stream_t tx_stream = {
 
-		handle : 0,		
+		handle : 0,
 		isTx : LMS_CH_TX,
 		channel : channel,
 		fifoSize : buffer_size,
-		throughputVsLatency : 0.0, //Need maybe more at high symbolrate : fixme !
+		throughputVsLatency : 1.0, //Need maybe more at high symbolrate : fixme !
 		dataFmt : lms_stream_t::LMS_FMT_I16
 	};
 
-	if ( LMS_SetupStream(device, &tx_stream) < 0 ) {
+	if (LMS_SetupStream(device, &tx_stream) < 0)
+	{
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
 		return 1;
 	}
-	if(SetGFIR(device,upsample)<0)
+	if (SetGFIR(device, upsample) < 0)
 	{
 		fprintf(stderr, "SetGFIR() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
 	}
 
-		if(upsample>1)
+	if (upsample > 1)
 		LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, true);
 	else
-			LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, false);
+		LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, false);
 
-
-
-/*if (isapipe)
+	/*if (isapipe)
 	{
 			static unsigned char BufferDummyTS[BUFFER_SIZE*10];	
 		int nin=0xffff;
@@ -551,42 +580,39 @@ else
 	}
 */
 
-int DebugCount=0;
-bool FirstTx=true;
-	bool Transition=true;
-LMS_StartStream(&tx_stream);
-LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
-while (!want_quit)
+	int DebugCount = 0;
+	bool FirstTx = true;
+	bool Transition = true;
+	LMS_StartStream(&tx_stream);
+	LMS_SetNormalizedGain(device, LMS_CH_TX, channel, gain);
+	while (!want_quit)
 	{
-		
 
-		 RunWithFile(&tx_stream,isapipe);
+		RunWithFile(&tx_stream, isapipe, FPGAMapping);
 
-		 lms_stream_status_t Status;
-			LMS_GetStreamStatus(&tx_stream,&Status);
-		if(Status.fifoFilledCount<Status.fifoSize*0.1)
+		lms_stream_status_t Status;
+		LMS_GetStreamStatus(&tx_stream, &Status);
+		if (Status.fifoFilledCount < Status.fifoSize * 0.5)
 		{
 			//while(Status.fifoFilledCount<Status.fifoSize*0.9)
 			{
-				LMS_GetStreamStatus(&tx_stream,&Status);
-				NullFiller(&tx_stream,1);
-			  fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);		
-			}	
-			
+				LMS_GetStreamStatus(&tx_stream, &Status);
+				NullFiller(&tx_stream, 10);
+				//fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+			}
 		}
 
-		if(DebugCount%1000==0)
+		if (DebugCount % 1000 == 0)
 		{
-			//fprintf(stderr,"Fifo =%d/%d\n",Status.fifoFilledCount,Status.fifoSize);
-			
-		}	
-		DebugCount++;	
-	}	
+			fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d\n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun);
+		}
+		DebugCount++;
+	}
 
-LMS_SetNormalizedGain( device, LMS_CH_TX, channel, 0 );
+	LMS_SetNormalizedGain(device, LMS_CH_TX, channel, 0);
 	LMS_StopStream(&tx_stream);
 	LMS_DestroyStream(device, &tx_stream);
-	LMS_EnableChannel( device, LMS_CH_TX, channel, false);
+	LMS_EnableChannel(device, LMS_CH_TX, channel, false);
 	LMS_Close(device);
 
 	return 0;
