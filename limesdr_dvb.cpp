@@ -100,7 +100,7 @@ static uint64_t _timestamp_ns(void)
 	return ((int64_t)tp.tv_sec * 1e9 + tp.tv_nsec);
 }
 
-unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket)
+unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 {
 	unsigned char NullPacket[188] = {0x47, 0x1F, 0xFF, 'F', '5', 'O', 'E', 'O'};
 	unsigned int TotalSampleWritten = 0;
@@ -111,7 +111,7 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket)
 			len = DvbsAddTsPacket(NullPacket);
 		if (ModeDvb == DVBS2)
 			len = Dvbs2AddTsPacket(NullPacket);
-		if (len != 0)
+		if (!fpga)
 		{
 			sfcmplx *Frame = NULL;
 			//fprintf(stderr, "Len %d\n", len);
@@ -120,19 +120,32 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket)
 			if (ModeDvb == DVBS2)
 				Frame = Dvbs2_get_IQ();
 
-			//fwrite(Frame, sizeof(sfcmplx), len, output);
 			lms_stream_meta_t meta;
 			meta.flushPartialPacket = true;
 			meta.timestamp = 0;
 			meta.waitForTimestamp = false;
-
 			int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
 			if (nb_samples != len)
 				fprintf(stderr, "TimeOUT %d\n", nb_samples);
-
-			TotalSampleWritten += len;
 		}
+		else
+		{
+			short *Frame = NULL;
+			if (ModeDvb == DVBS)
+				Frame = Dvbs_get_MapIQ();
+			
+			lms_stream_meta_t meta;
+			meta.flushPartialPacket = true;
+			meta.timestamp = 0;
+			meta.waitForTimestamp = false;
+			int nb_samples = LMS_SendStream(tx_stream, Frame, len / 2, &meta, 1000);
+			if (nb_samples != len/2)
+				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+		}
+
+		TotalSampleWritten += len;
 	}
+
 	return TotalSampleWritten;
 }
 
@@ -247,38 +260,37 @@ bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 
 		if (len != 0)
 		{
-			if(!fpga)
+			if (!fpga)
 			{
-			sfcmplx *Frame = NULL;
-			//fprintf(stderr, "Len %d\n", len);
-			if (ModeDvb == DVBS)
-				Frame = Dvbs_get_IQ();
-			if (ModeDvb == DVBS2)
-				Frame = Dvbs2_get_IQ();
+				sfcmplx *Frame = NULL;
+				//fprintf(stderr, "Len %d\n", len);
+				if (ModeDvb == DVBS)
+					Frame = Dvbs_get_IQ();
+				if (ModeDvb == DVBS2)
+					Frame = Dvbs2_get_IQ();
 
-			lms_stream_meta_t meta;
-			meta.flushPartialPacket = true;
-			meta.timestamp = 0;
-			meta.waitForTimestamp = false;
-			int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
-			if (nb_samples != len)
-				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+				lms_stream_meta_t meta;
+				meta.flushPartialPacket = true;
+				meta.timestamp = 0;
+				meta.waitForTimestamp = false;
+				int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
+				if (nb_samples != len)
+					fprintf(stderr, "TimeOUT %d\n", nb_samples);
 			}
 			else
 			{
-					short *Frame = NULL;
-					if (ModeDvb == DVBS)
-							Frame = Dvbs_get_MapIQ();
-			
-			lms_stream_meta_t meta;
-			meta.flushPartialPacket = true;
-			meta.timestamp = 0;
-			meta.waitForTimestamp = false;
-			int nb_samples = LMS_SendStream(tx_stream, Frame, len/2, &meta, 1000);
-			if (nb_samples != len)
-				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+				short *Frame = NULL;
+				if (ModeDvb == DVBS)
+					Frame = Dvbs_get_MapIQ();
+
+				lms_stream_meta_t meta;
+				meta.flushPartialPacket = true;
+				meta.timestamp = 0;
+				meta.waitForTimestamp = false;
+				int nb_samples = LMS_SendStream(tx_stream, Frame, len / 2, &meta, 1000);
+				if (nb_samples != len)
+					fprintf(stderr, "TimeOUT %d\n", nb_samples);
 			}
-			
 		}
 	}
 	int n, ret;
@@ -445,6 +457,7 @@ int main(int argc, char **argv)
 			break;
 		case 'F':
 			FPGAMapping = true;
+			fprintf(stderr, "Using fpga mode\n");
 			break;
 		case -1:
 			break;
@@ -508,6 +521,8 @@ int main(int argc, char **argv)
 	char *antenna = "BAND1";
 	double host_sample_rate;
 
+	if (FPGAMapping)
+		SymbolRate = SymbolRate / 2;
 	if (upsample > 1)
 		sample_rate = SymbolRate * upsample; // Upsampling
 	else
@@ -597,7 +612,7 @@ int main(int argc, char **argv)
 			//while(Status.fifoFilledCount<Status.fifoSize*0.9)
 			{
 				LMS_GetStreamStatus(&tx_stream, &Status);
-				NullFiller(&tx_stream, 10);
+				NullFiller(&tx_stream, 10, FPGAMapping);
 				//fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
 			}
 		}
