@@ -138,8 +138,9 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 			meta.flushPartialPacket = true;
 			meta.timestamp = 0;
 			meta.waitForTimestamp = false;
-			int nb_samples = LMS_SendStream(tx_stream, Frame, len / 2, &meta, 1000);
-			if (nb_samples != len/2)
+			
+			int nb_samples = LMS_SendStream(tx_stream, Frame, len , &meta, 1000);
+			if (nb_samples != len)
 				fprintf(stderr, "TimeOUT %d\n", nb_samples);
 		}
 
@@ -521,8 +522,7 @@ int main(int argc, char **argv)
 	char *antenna = "BAND1";
 	double host_sample_rate;
 
-	if (FPGAMapping)
-		SymbolRate = SymbolRate / 2;
+	//if (FPGAMapping)		SymbolRate = SymbolRate / 2;
 	if (upsample > 1)
 		sample_rate = SymbolRate * upsample; // Upsampling
 	else
