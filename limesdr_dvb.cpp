@@ -131,16 +131,17 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 		else
 		{
 			short *Frame = NULL;
+			int fpgalen;
 			if (ModeDvb == DVBS)
-				Frame = Dvbs_get_MapIQ();
+				Frame = Dvbs_get_MapIQ(&fpgalen);
 			
 			lms_stream_meta_t meta;
 			meta.flushPartialPacket = true;
 			meta.timestamp = 0;
 			meta.waitForTimestamp = false;
 			
-			int nb_samples = LMS_SendStream(tx_stream, Frame, len , &meta, 1000);
-			if (nb_samples != len)
+			int nb_samples = LMS_SendStream(tx_stream, Frame, fpgalen , &meta, 1000);
+			if (fpgalen != nb_samples)
 				fprintf(stderr, "TimeOUT %d\n", nb_samples);
 		}
 
@@ -281,15 +282,16 @@ bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 			else
 			{
 				short *Frame = NULL;
+				int fpgalen;
 				if (ModeDvb == DVBS)
-					Frame = Dvbs_get_MapIQ();
+					Frame = Dvbs_get_MapIQ(&fpgalen);
 
 				lms_stream_meta_t meta;
 				meta.flushPartialPacket = true;
 				meta.timestamp = 0;
 				meta.waitForTimestamp = false;
-				int nb_samples = LMS_SendStream(tx_stream, Frame, len / 2, &meta, 1000);
-				if (nb_samples != len)
+				int nb_samples = LMS_SendStream(tx_stream, Frame, fpgalen, &meta, 1000);
+				if (nb_samples != fpgalen)
 					fprintf(stderr, "TimeOUT %d\n", nb_samples);
 			}
 		}
@@ -619,7 +621,7 @@ int main(int argc, char **argv)
 
 		if (DebugCount % 1000 == 0)
 		{
-			fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d\n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun);
+			fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d Link=%f \n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun,Status.linkRate);
 		}
 		DebugCount++;
 	}
