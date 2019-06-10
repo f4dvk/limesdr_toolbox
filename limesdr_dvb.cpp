@@ -111,15 +111,17 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 			len = DvbsAddTsPacket(NullPacket);
 		if (ModeDvb == DVBS2)
 			len = Dvbs2AddTsPacket(NullPacket);
+		if(len>0)
+		{	
 		if (!fpga)
 		{
 			sfcmplx *Frame = NULL;
-			//fprintf(stderr, "Len %d\n", len);
+			fprintf(stderr, "Len %d\n", len);
 			if (ModeDvb == DVBS)
 				Frame = Dvbs_get_IQ();
 			if (ModeDvb == DVBS2)
 				Frame = Dvbs2_get_IQ();
-
+			
 			lms_stream_meta_t meta;
 			meta.flushPartialPacket = true;
 			meta.timestamp = 0;
@@ -146,6 +148,7 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 		}
 
 		TotalSampleWritten += len;
+		}
 	}
 
 	return TotalSampleWritten;
