@@ -80,7 +80,7 @@ float TimingSimu = 1.0; //Cycle QSB
 //LimeSpecific
 lms_device_t *device = NULL;
 unsigned int freq = 0;
-double bandwidth_calibrating = 8e6;
+double bandwidth_calibrating = 12e6;
 double sample_rate = 2e6;
 double gain = 1;
 unsigned int buffer_size = 129960;
@@ -116,7 +116,7 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 		if (!fpga)
 		{
 			sfcmplx *Frame = NULL;
-			fprintf(stderr, "Len %d\n", len);
+			
 			if (ModeDvb == DVBS)
 				Frame = Dvbs_get_IQ();
 			if (ModeDvb == DVBS2)
@@ -133,18 +133,60 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 		else
 		{
 			short *Frame = NULL;
-			int fpgalen;
+			int fpgalen=0;
 			if (ModeDvb == DVBS)
 				Frame = Dvbs_get_MapIQ(&fpgalen);
 			
+			/*
+			// TEST
+			{
+			static short TestFrame[4080];
+			static int TestLen=0;
+			static int firstpacket=0;
+
+			if(firstpacket<10)
+			{
+				TestLen=6*50;
+				
+				for(int i=0;i<TestLen*2/6;i++)
+				{
+					TestFrame[i*6]=0x0000;
+					TestFrame[i*6+1]=0xAAA0;
+					TestFrame[i*6+2]=0xFFF0;
+					TestFrame[i*6+3]=0x5550;
+					TestFrame[i*6+4]=0xFFF0;
+					TestFrame[i*6+5]=0xAAA0;
+				
+				}
+
+				//memcpy(TestFrame,Frame,TestLen*2*sizeof(short));
+				
+				firstpacket++;
+				fprintf(stderr, "First Frame %d\n", TestLen*2);
+			}
+			
 			lms_stream_meta_t meta;
-			meta.flushPartialPacket = true;
+			meta.flushPartialPacket = false;
+			meta.timestamp = 0;
+			meta.waitForTimestamp = false;
+			
+			int nb_samples = LMS_SendStream(tx_stream, TestFrame, TestLen , &meta, 1000);
+			if (TestLen != nb_samples)
+				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+
+			return TestLen;
+			}
+			//END TEST
+			*/
+
+			lms_stream_meta_t meta;
+			meta.flushPartialPacket = false;
 			meta.timestamp = 0;
 			meta.waitForTimestamp = false;
 			
 			int nb_samples = LMS_SendStream(tx_stream, Frame, fpgalen , &meta, 1000);
 			if (fpgalen != nb_samples)
-				fprintf(stderr, "TimeOUT %d\n", nb_samples);
+				fprintf(stderr, "TimeOUT %d\n", nb_samples); 
 		}
 
 		TotalSampleWritten += len;
@@ -494,7 +536,13 @@ int main(int argc, char **argv)
 	}
 	if ((ModeDvb == DVBS) && (FEC >= 0))
 	{
-		Bitrate = DvbsInit(SymbolRate, FEC, Constellation, upsample);
+		if(FPGAMapping)
+			Bitrate = DvbsInit(SymbolRate, FEC, Constellation,1);
+		else
+		{
+			Bitrate = DvbsInit(SymbolRate, FEC, Constellation,upsample);
+		}
+			
 	}
 	if ((ModeDvb == DVBS2) && (FEC >= 0))
 	{
@@ -558,6 +606,9 @@ int main(int argc, char **argv)
 	else
 	{
 		buffer_size = 8000 * upsample * CoeffBufferSize; //FixMe for DVB-S
+		if(FPGAMapping)
+			buffer_size=272*10000; //FixMe
+
 	}
 
 	lms_stream_t tx_stream = {
