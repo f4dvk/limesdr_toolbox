@@ -647,7 +647,7 @@ int limesdr_init(const double sample_rate,
 		//return -1;
 	}
 	
-	LMS_SetNormalizedGain(*device, is_tx, channel, 0);
+	LMS_SetNormalizedGain(*device, is_tx, channel, gain);
 	if(WithCalibration)
 	{
 		if (LMS_SetSampleRate(*device, sample_rate, 0) < 0)
@@ -664,7 +664,7 @@ int limesdr_init(const double sample_rate,
 		else
 			fprintf(stderr, "LMS_GetSampleRate() return : %f\n", *host_sample_rate);
 	}		
-	//LMS_SetLPFBW(*device,is_tx,0,bandwidth_calibrating);
+	LMS_SetLPFBW(*device,is_tx,0,bandwidth_calibrating);
 
 	//	LMS_SetLPFBW(*device,is_not_tx,0,bandwidth_calibrating);
 
