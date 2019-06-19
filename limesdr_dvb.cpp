@@ -617,6 +617,8 @@ int main(int argc, char **argv)
 	if (ModeDvb == DVBS2)
 	{
 		buffer_size = ((ShortFrame) ? 16200 : 64800) * upsample * CoeffBufferSize; //4 Buffer of frame Max
+		if (FPGAMapping)
+			buffer_size = ((ShortFrame) ? 16200 : 64800) /12 *CoeffBufferSize; //4 Buffer of frame Max
 	}
 	else
 	{
@@ -631,7 +633,7 @@ int main(int argc, char **argv)
 		isTx : LMS_CH_TX,
 		channel : channel,
 		fifoSize : buffer_size,
-		throughputVsLatency : 1.0, //Need maybe more at high symbolrate : fixme !
+		throughputVsLatency : FPGAMapping?0.5:1.0, //Need maybe more at high symbolrate : fixme !
 		dataFmt : lms_stream_t::LMS_FMT_I16
 	};
 
@@ -679,19 +681,19 @@ int main(int argc, char **argv)
 
 		lms_stream_status_t Status;
 		LMS_GetStreamStatus(&tx_stream, &Status);
-		if (Status.fifoFilledCount < Status.fifoSize * 0.5)
+		if (Status.fifoFilledCount < Status.fifoSize * 0.25)
 		{
 			//while(Status.fifoFilledCount<Status.fifoSize*0.9)
 			{
 				LMS_GetStreamStatus(&tx_stream, &Status);
 				NullFiller(&tx_stream, 10, FPGAMapping);
-				//fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+				fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
 			}
 		}
 
 		if (DebugCount % 1000 == 0)
 		{
-			fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d Link=%f \n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun, Status.linkRate);
+			//fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d Link=%f \n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun, Status.linkRate);
 		}
 		DebugCount++;
 	}
