@@ -123,7 +123,7 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 					Frame = Dvbs2_get_IQ();
 
 				lms_stream_meta_t meta;
-				meta.flushPartialPacket = true;
+				meta.flushPartialPacket = false;
 				meta.timestamp = 0;
 				meta.waitForTimestamp = false;
 				int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
@@ -320,7 +320,7 @@ bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 					Frame = Dvbs2_get_IQ();
 
 				lms_stream_meta_t meta;
-				meta.flushPartialPacket = true;
+				meta.flushPartialPacket = false;
 				meta.timestamp = 0;
 				meta.waitForTimestamp = false;
 				int nb_samples = LMS_SendStream(tx_stream, Frame, len, &meta, 1000);
@@ -333,11 +333,11 @@ bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 				int fpgalen;
 				if (ModeDvb == DVBS)
 					Frame = Dvbs_get_MapIQ(&fpgalen);
-				if (ModeDvb == DVBS)
+				if (ModeDvb == DVBS2)
 					Frame = Dvbs2_get_MapIQ(&fpgalen);
 
 				lms_stream_meta_t meta;
-				meta.flushPartialPacket = true;
+				meta.flushPartialPacket = false;
 				meta.timestamp = 0;
 				meta.waitForTimestamp = false;
 				int nb_samples = LMS_SendStream(tx_stream, Frame, fpgalen, &meta, 1000);
