@@ -618,7 +618,7 @@ int main(int argc, char **argv)
 	{
 		buffer_size = ((ShortFrame) ? 16200 : 64800) * upsample * CoeffBufferSize; //4 Buffer of frame Max
 		if (FPGAMapping)
-			buffer_size = ((ShortFrame) ? 16200 : 64800) /12 *CoeffBufferSize; //4 Buffer of frame Max
+			buffer_size = ((ShortFrame) ? 16200 : 64800) *CoeffBufferSize; //4 Buffer of frame Max
 	}
 	else
 	{
@@ -633,11 +633,22 @@ int main(int argc, char **argv)
 		isTx : LMS_CH_TX,
 		channel : channel,
 		fifoSize : buffer_size,
-		throughputVsLatency : FPGAMapping?0.5:1.0, //Need maybe more at high symbolrate : fixme !
+		throughputVsLatency : FPGAMapping?1.0:1.0, //Need maybe more at high symbolrate : fixme !
 		dataFmt : lms_stream_t::LMS_FMT_I16
 	};
 
-	LMS_WriteFPGAReg(device, 0x0B, upsample);
+	if(FPGAMapping)
+	{
+		unsigned char FpgaCustomRegister=0;
+		FpgaCustomRegister=upsample&0x7;
+		switch(Constellation)
+		{
+			case M_QPSK:FpgaCustomRegister|=(0<<3);break;
+			case M_8PSK:FpgaCustomRegister|=(1<<3);break;
+			default:fprintf(stderr,"ERROR: FPGA mode support only QPSK,8PSK\n");break;
+		}
+		LMS_WriteFPGAReg(device, 0x0B, FpgaCustomRegister);
+	}
 
 	if (LMS_SetupStream(device, &tx_stream) < 0)
 	{
@@ -687,13 +698,13 @@ int main(int argc, char **argv)
 			{
 				LMS_GetStreamStatus(&tx_stream, &Status);
 				NullFiller(&tx_stream, 10, FPGAMapping);
-				fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
+				//fprintf(stderr,"Underflow %d/%d\n",Status.fifoFilledCount,Status.fifoSize);
 			}
 		}
 
 		if (DebugCount % 1000 == 0)
 		{
-			//fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d Link=%f \n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun, Status.linkRate);
+			fprintf(stderr, "Fifo =%d/%d dropped %d underrun %d overrun %d Link=%f \n", Status.fifoFilledCount, Status.fifoSize, Status.droppedPackets, Status.underrun, Status.overrun, Status.linkRate);
 		}
 		DebugCount++;
 	}
