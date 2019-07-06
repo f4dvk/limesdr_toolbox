@@ -83,6 +83,7 @@ unsigned int freq = 0;
 double bandwidth_calibrating = 20e6;
 double sample_rate = 2e6;
 double gain = 1;
+uint16_t dig_gain = 0;
 unsigned int buffer_size = 129960;
 double postpone_emitting_sec = 0.5;
 unsigned int device_i = 0;
@@ -379,6 +380,7 @@ Usage:\nlimesdr_dvb -s SymbolRate [-i File Input] [-f Fec]  [-m Modulation Type]
 -g 	      Gain (0..1) \n\
 -q 	      {0,1} 0:Use a calibration file 1:Process calibration (!HF peak!)\n\
 -F 	      Enable FPGA mapping\n\
+-D        Digital Gain (FPGA Mapping only)\n\
 -h            help (print this help).\n\
 Example : ./limesdr_dvb -s 1000 -f 7/8 -m DVBS2 -c 8PSK -p\n\
 \n",
@@ -404,7 +406,7 @@ int main(int argc, char **argv)
 
 	while (1)
 	{
-		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:F");
+		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:FD:");
 
 		if (a == -1)
 		{
@@ -511,6 +513,9 @@ int main(int argc, char **argv)
 		case 'F':
 			FPGAMapping = true;
 			fprintf(stderr, "Using fpga mode\n");
+			break;
+		case 'D':
+			dig_gain = (uint16_t)atoi(optarg) & 0x1F;
 			break;
 		case -1:
 			break;
@@ -639,7 +644,7 @@ int main(int argc, char **argv)
 
 	if(FPGAMapping)
 	{
-		unsigned char FpgaCustomRegister=0;
+		uint16_t FpgaCustomRegister=0;
 		FpgaCustomRegister=upsample&0x7;
 		switch(Constellation)
 		{
@@ -647,6 +652,8 @@ int main(int argc, char **argv)
 			case M_8PSK:FpgaCustomRegister|=(1<<3);break;
 			default:fprintf(stderr,"ERROR: FPGA mode support only QPSK,8PSK\n");break;
 		}
+		// Handle digital gain
+		FpgaCustomRegister |= (dig_gain << 5) & 0x3E0;
 		LMS_WriteFPGAReg(device, 0x0B, FpgaCustomRegister);
 	}
 
