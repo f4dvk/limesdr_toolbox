@@ -246,11 +246,11 @@ bool RunWithFile(lms_stream_t *tx_stream, bool live, bool fpga)
 			return true;
 		}
 
-		if ((ret == 0) && (nin > 48000))
+		/*if ((ret == 0) && (nin > 48000))
 		{
 			fread(BufferTS, 1, BUFFER_SIZE, input);
 			fprintf(stderr, "Overflow\n");
-		}
+		}*/
 	}
 
 	int NbRead = fread(BufferTS, 1, BUFFER_SIZE, input);
