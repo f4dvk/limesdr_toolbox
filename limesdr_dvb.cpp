@@ -632,16 +632,17 @@ int main(int argc, char **argv)
 			buffer_size = 272 * 10000; //FixMe
 	}
 
-	lms_stream_t tx_stream = {
+	 lms_stream_t tx_stream;
 
-		handle : 0,
-		isTx : LMS_CH_TX,
-		channel : channel,
-		fifoSize : buffer_size,
-		throughputVsLatency : FPGAMapping?1.0:1.0, //Need maybe more at high symbolrate : fixme !
-		dataFmt : lms_stream_t::LMS_FMT_I16
-	};
+		tx_stream.handle = 0;
+		tx_stream.isTx = LMS_CH_TX;
+		tx_stream.channel = channel;
+		tx_stream.fifoSize = buffer_size;
+		tx_stream.throughputVsLatency = FPGAMapping?1.0:1.0; //Need maybe more at high symbolrate : fixme !
+		tx_stream.dataFmt = lms_stream_t::LMS_FMT_I16;
+	
 
+	
 	if(FPGAMapping)
 	{
 		uint16_t FpgaCustomRegister=0;
