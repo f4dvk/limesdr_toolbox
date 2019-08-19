@@ -33,9 +33,19 @@ int limesdr_set_channel(const unsigned int freq,
 						const char *antenna,
 						const int is_tx,
 						lms_device_t *device,
-						bool WithCalibration)
+						bool WithCalibration,
+						bool Forward)
 
 {
+
+	if (Forward)
+	{
+		if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
+		{
+			fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
+			//return -1;
+		}
+	}
 
 	if (!WithCalibration)
 	{
@@ -46,15 +56,15 @@ int limesdr_set_channel(const unsigned int freq,
 		{
 			fprintf(stderr,"No calibration file found. Perform a calibration. Exiting.\n");
 			exit(1);
-		}	
+		}
 	}
 
 	//if (WithCalibration)
 	{
-		
-		
 
-		
+
+
+
 
 		if (WithCalibration)
 		{
@@ -67,7 +77,7 @@ int limesdr_set_channel(const unsigned int freq,
 		/*
 		for (i = 0; i < nb_antenna; i++)
 		{
-			
+
 			if (strcmp(list[i], antenna) == 0)
 			{
 				antenna_found = 1;
@@ -124,9 +134,9 @@ int limesdr_set_channel(const unsigned int freq,
 			return -1;
 		}
 			//LoadCal(device, "limemini.cal");
-			
+
 		}
-			
+
 		/*
 		if (LMS_SaveConfig(device, "limemini.cal") < 0)
 		{
@@ -137,7 +147,7 @@ int limesdr_set_channel(const unsigned int freq,
 
 		//LMS_SetNormalizedGain(device, is_tx, channel, 0);
 	}
-	
+
 	return 0;
 }
 
@@ -192,14 +202,14 @@ int16_t LoadCal(lms_device_t *device, char *FileCalib)
 	fscanf(file, "csw_vco=%hu\n", &csw_vco);
 
 	//restore results
-	
+
 	LMS_WriteLMSReg(device, 0x011D, reg011D);
 	LMS_WriteLMSReg(device, 0x011E, reg011E);
 	LMS_WriteParam(device, LMS7_DIV_LOCH, div_loch);
 	LMS_WriteParam(device, LMS7_EN_DIV2_DIVPROG, en_div2);
 	LMS_WriteParam(device, LMS7_SEL_VCO, sel_vco);
 	LMS_WriteParam(device, LMS7_CSW_VCO, csw_vco);
-	
+
 
 	// DC/IQ same for Rx/Tx just adjust the paramter names
 	uint16_t gcorri;
@@ -640,13 +650,13 @@ int limesdr_init(const double sample_rate,
 		fprintf(stderr, "LMS_EnableChannelTx1() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}*/
-	
+
 	if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
 	{
 		fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
 		//return -1;
 	}
-	
+
 	LMS_SetNormalizedGain(*device, is_tx, channel, gain);
 	if(WithCalibration)
 	{
@@ -655,7 +665,7 @@ int limesdr_init(const double sample_rate,
 			fprintf(stderr, "LMS_SetSampleRate() : %s\n", LMS_GetLastErrorMessage());
 			return -1;
 		}
-		
+
 		if (LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate, NULL) < 0)
 		{
 			fprintf(stderr, "Warning : LMS_GetSampleRate() : %s\n", LMS_GetLastErrorMessage());
@@ -663,12 +673,12 @@ int limesdr_init(const double sample_rate,
 		}
 		else
 			fprintf(stderr, "LMS_GetSampleRate() return : %f\n", *host_sample_rate);
-	}		
+	}
 	LMS_SetLPFBW(*device,is_tx,0,bandwidth_calibrating);
 
 	//	LMS_SetLPFBW(*device,is_not_tx,0,bandwidth_calibrating);
 
-	if (limesdr_set_channel(freq, bandwidth_calibrating, gain, channel, antenna, is_tx, *device, WithCalibration) < 0)
+	if (limesdr_set_channel(freq, bandwidth_calibrating, gain, channel, antenna, is_tx, *device, WithCalibration, false) < 0)
 	{
 		return -1;
 	}
@@ -677,6 +687,6 @@ int limesdr_init(const double sample_rate,
 		LMS_SetSampleRate(*device, sample_rate, 0);
 		LMS_GetSampleRate(*device, is_tx, channel, host_sample_rate,NULL);
 	}
-	
+
 	return 0;
 }

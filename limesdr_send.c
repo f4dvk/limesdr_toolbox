@@ -45,14 +45,14 @@ int main(int argc, char** argv)
 		       "  -b <BANDWIDTH_CALIBRATING> (default: 8e6)\n"
 		       "  -s <SAMPLE_RATE> (default: 2e6)\n"
 		       "  -g <GAIN_NORMALIZED> (default: 1)\n"
-               "  -l <BUFFER_SIZE> (default: 1024*1024)\n"
+		       "  -l <BUFFER_SIZE> (default: 1024*1024)\n"
 		       "  -p <POSTPONE_EMITTING_SEC> (default: 3)\n"
 		       "  -d <DEVICE_INDEX> (default: 0)\n"
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (BAND1 | BAND2) (default: BAND1)\n"
-			   "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
+		       "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
 		       "  -i <INPUT_FILENAME> (default: stdin)\n"
-			   "  -q <CalibrationEnable> (default: 1)\n");
+		       "  -q <CalibrationEnable> (default: 1)\n");
 		return 1;
 	}
 	int i;
@@ -164,8 +164,8 @@ int main(int argc, char** argv)
 	}
 	LMS_StartStream(&rx_stream);
 	*/
-	
-	
+
+
 	signal(SIGINT, signal_handler);
         signal(SIGTERM, signal_handler);
         signal(SIGQUIT, signal_handler);
@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 	int TotalSampleSent=0;
 	int DebugCount=0;
 	while( !want_quit ) {
-		
+
 			lms_stream_status_t Status;
 			LMS_GetStreamStatus(&tx_stream,&Status);
 
@@ -192,8 +192,8 @@ int main(int argc, char** argv)
 					//memset(buff,0,buffer_size*sizeof(*buff));
 					//LMS_SendStream( &tx_stream, buff, (Status.fifoSize-Status.fifoFilledCount)/sizeof( *buff ), NULL, 1000 );
 			}*/
-		}		
-		DebugCount++;	
+		}
+		DebugCount++;
 		int nb_samples_to_send = fread( buff, sizeof( *buff ), buffer_size, fd );
 
 		if((!FirstTx)&&(Status.fifoFilledCount<Status.fifoSize*0.25))
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
 			for(int i=0;i<8;i++)
 				LMS_SendStream( &tx_stream, buff, buffer_size, NULL/*&tx_meta*/, 1000 );
 			fprintf(stderr,"Underflow ! %d\n",Status.fifoFilledCount);
-			
+
 		}
 		if(FirstTx&&(Status.fifoFilledCount==Status.fifoSize))
 		{
@@ -227,14 +227,14 @@ int main(int argc, char** argv)
 		TotalSampleSent+=nb_samples;
 		if ( nb_samples < 0 ) {
 			fprintf(stderr, "LMS_SendStream() : %s\n", LMS_GetLastErrorMessage());
-			
+
 		}
 		if(Transition)
 		{
 			if(TotalSampleSent>sample_rate) // 1 second
 			{
 				LMS_SetNormalizedGain( device, LMS_CH_TX, channel, gain );
-				Transition=false;		
+				Transition=false;
 			}
 		}
 		tx_meta.timestamp += nb_samples;

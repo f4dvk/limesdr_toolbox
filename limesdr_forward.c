@@ -176,18 +176,18 @@ int main(int argc, char **argv)
 							channel_output,
 							antenna_output,
 							LMS_CH_TX,
-							device, true) < 0)
+							device, true, true) < 0)
 	{
 		return 1;
 	}
-	
+
 	if(SetGFIR(device,4)<0)
 	{
 		fprintf(stderr, "SetGFIR() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
 	}
 	LMS_SetGFIR(device, LMS_CH_RX, 0, LMS_GFIR3, true);
-	
+
 	uint16_t val;
 	LMS_ReadParam(device, LMS7_TX_MUX, &val);
 	fprintf(stderr, "Val =%x\n", val);
@@ -195,9 +195,9 @@ int main(int argc, char **argv)
 	LMS_ReadParam(device, LMS7_TX_MUX, &val);
 	fprintf(stderr, "After Val =%x\n", val);
 	LMS_WriteParam(device, LMS7_TXWRCLK_MUX, 2);
-	
 
-	
+
+
 	while (1)
 	{
 		sleep(1);

@@ -34,7 +34,7 @@ int main(int argc, char** argv)
 		       "  -b <BANDWIDTH_CALIBRATING> (default: 8e6)\n"
 		       "  -s <SAMPLE_RATE> (default: 2e6)\n"
 		       "  -g <GAIN_NORMALIZED> (default: 1)\n"
-                       "  -l <BUFFER_SIZE>  (default: 1024*1024)\n"
+		       "  -l <BUFFER_SIZE>  (default: 1024*1024)\n"
 		       "  -d <DEVICE_INDEX> (default: 0)\n"
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (LNAL | LNAH | LNAW) (default: LNAW)\n"
