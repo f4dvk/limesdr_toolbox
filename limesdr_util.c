@@ -40,7 +40,7 @@ int limesdr_set_channel(const unsigned int freq,
 
 	if (Forward)
 	{
-		if (LMS_EnableChannel(*device, is_tx, channel, true) < 0)
+		if (LMS_EnableChannel(device, is_tx, channel, true) < 0)
 		{
 			fprintf(stderr, "LMS_EnableChannelTx() : %s\n", LMS_GetLastErrorMessage());
 			//return -1;
