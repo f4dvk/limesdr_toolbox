@@ -1,0 +1,6 @@
+freqinput=145.9
+freqoutput=437
+rxgain=-1
+txgain=1
+bwcal=4e6
+samplerate=1.2e6

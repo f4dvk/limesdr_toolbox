@@ -7,6 +7,13 @@ The toolbox contains the following tools:
  - limesdr_forward : relay of both digital and analog signals : forward input I/Q signals of a RX channel (inputs frequencies) to a TX channel (output frequencies).
  - limesdr_stopchannel : stop all RX/TX channels (debug purpose)
 
+ # Installation
+ ```
+ git clone https://github.com/f4dvk/limesdr_toolbox
+ cd limesdr_toolbox
+ make
+ ```
+
 # limesdr_dump
 limesdr_dump allows to dump I/Q signals on arbitrary frequencies with 16-bits resolution (highest precision of the hardware).
 ```
@@ -83,6 +90,11 @@ Usage: ./limesdr_forward <OPTIONS>
 E.g. forwarding of a radio station
 ```
 $ ./limesdr_forward -f 100.1e6 -F 234.5e6
+```
+
+Menu:
+```
+$ ./menu.sh
 ```
 
 # limesdr_stopchannel
