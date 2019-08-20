@@ -9,9 +9,9 @@ The toolbox contains the following tools:
 
  # Installation
  ```
- git clone https://github.com/f4dvk/limesdr_toolbox
- cd limesdr_toolbox
- make
+ wget https://raw.githubusercontent.com/f4dvk/limesdr_toolbox/master/install.sh
+ chmod +x install.sh
+ ./install.sh
  ```
 
 # limesdr_dump
