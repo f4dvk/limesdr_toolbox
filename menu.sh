@@ -79,7 +79,7 @@ if GAIN_T=$(whiptail --inputbox "Choisir le gain TX (de 0.00 à 1)" 8 78 $TX_GAI
     set_config_var txgain "$TX_GAIN" $PCONFIGFORWARD
 fi
 
-if BW=$(whiptail --inputbox "Choisir la bande passante de calibration (mini 4e6)" 8 78 $BW_CAL --title "Bande Passante Calibration" 3>&1 1>&2 2>&3); then
+if BW=$(whiptail --inputbox "Choisir la bande passante de calibration (mini 4e6 si gain RX < à 0.6, sinon 2.5e6 mini.)" 8 78 $BW_CAL --title "Bande Passante Calibration" 3>&1 1>&2 2>&3); then
     BW_CAL=$BW
     set_config_var bwcal "$BW_CAL" $PCONFIGFORWARD
 fi
