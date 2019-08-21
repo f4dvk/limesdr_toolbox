@@ -104,6 +104,16 @@ do_status()
 	do_stop
 }
 
+do_start_gpio()
+{
+  $PWD/cmd_gpio_deamon.sh 1
+}
+
+do_stop_gpio()
+{
+  $PWD/cmd_gpio_deamon.sh 0
+}
+
 while [ "$status" -eq 0 ]
    do
 
@@ -119,10 +129,10 @@ menuchoice=$(whiptail --title "Transpondeur" --menu "Menu" 20 102 12 \
    do_status;;
    1\ *)
    do_forward_setup;;
-   2\ *) "$PWD/cmd_gpio_deamon.sh start" >/dev/null 2>/dev/null &
-   ;;
-   3\ *) "$PWD/cmd_gpio_deamon.sh stop" >/dev/null 2>/dev/null &
-   ;;
+   2\ *)
+   do_start_gpio;;
+   3\ *)
+   do_stop_gpio;;
    *)	 status=1
    whiptail --title "Au revoir" --msgbox "Merci d'avoir utilisé le transpondeur" 8 78
    ;;
