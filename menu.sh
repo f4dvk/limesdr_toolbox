@@ -110,8 +110,8 @@ while [ "$status" -eq 0 ]
 menuchoice=$(whiptail --title "Transpondeur" --menu "Menu" 20 102 12 \
  "0 Transpondeur" " $FREQ_INPUT => ""$FREQ_OUTPUT"MHZ \
  "1 Config" " $FREQ_INPUT => ""$FREQ_OUTPUT MHZ, Gain RX: $RX_GAIN2, Gain TX: $TX_GAIN, BW: $BW_CAL, Samplerate: $SAMPLERATE" \
- "2 Activer GPIO au démarrage" \
- "3 Désactiver GPIO au démarrage" \
+ "2 Activer GPIO" "Activer la commande Transpondeur via GPIO au démarrage." \
+ "3 Désactiver GPIO" "Désactiver la commande Transpondeur via GPIO au démarrage." \
  3>&2 2>&1 1>&3)
 
        case "$menuchoice" in
