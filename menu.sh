@@ -1,4 +1,4 @@
-#!/bin/bash
+#!
 
 PCONFIGFORWARD="$PWD/forward_config.txt"
 status="0"
