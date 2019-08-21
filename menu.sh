@@ -110,6 +110,8 @@ while [ "$status" -eq 0 ]
 menuchoice=$(whiptail --title "Transpondeur" --menu "Menu" 20 102 12 \
  "0 Transpondeur" " $FREQ_INPUT => ""$FREQ_OUTPUT"MHZ \
  "1 Config" " $FREQ_INPUT => ""$FREQ_OUTPUT MHZ, Gain RX: $RX_GAIN2, Gain TX: $TX_GAIN, BW: $BW_CAL, Samplerate: $SAMPLERATE" \
+ "2 Activer GPIO au démarrage" \
+ "3 Désactiver GPIO au démarrage" \
  3>&2 2>&1 1>&3)
 
        case "$menuchoice" in
@@ -117,6 +119,10 @@ menuchoice=$(whiptail --title "Transpondeur" --menu "Menu" 20 102 12 \
    do_status;;
    1\ *)
    do_forward_setup;;
+   2\ *) "$PWD/cmd_gpio_deamon.sh start" >/dev/null 2>/dev/null &
+   ;;
+   3\ *) "$PWD/cmd_gpio_deamon.sh stop" >/dev/null 2>/dev/null &
+   ;;
    *)	 status=1
    whiptail --title "Au revoir" --msgbox "Merci d'avoir utilisé le transpondeur" 8 78
    ;;

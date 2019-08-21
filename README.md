@@ -8,11 +8,11 @@ The toolbox contains the following tools:
  - limesdr_stopchannel : stop all RX/TX channels (debug purpose)
 
  # Installation
- ```
-git clone https://github.com/f4dvk/limesdr_toolbox
-cd limesdr_toolbox
-make
- ```
+```
+wget https://raw.githubusercontent.com/f4dvk/limesdr_toolbox/master/install.sh
+chmod +x install.sh
+./install.sh
+```
 
 # limesdr_dump
 limesdr_dump allows to dump I/Q signals on arbitrary frequencies with 16-bits resolution (highest precision of the hardware).
