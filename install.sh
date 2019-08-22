@@ -2,6 +2,7 @@
 
 sudo apt-get update
 sudo apt-get install -y git g++ cmake libsqlite3-dev libi2c-dev libusb-1.0-0-dev netcat
+sudo apt-get install -y wiringpi
 
 git clone --depth=1 https://github.com/myriadrf/LimeSuite
 cd LimeSuite
@@ -31,6 +32,6 @@ cd ../../
 make
 make dvb
 
-alias transpondeur='/home/pi/limesdr_toolbox/menu.sh'
+echo "alias transpondeur='/home/pi/limesdr_toolbox/menu.sh'" >> /home/pi/.bash_aliases
 
 sudo reboot
