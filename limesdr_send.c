@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 
 	// Set up GPIOs for output
 	uint8_t gpio_dir = 0x8F; // Set the 4 LSBs and the MSB to write
-	if (LMS_GPIOdirWrite(device, &gpio_dir, 1) != 0) // 1 byte buffer is enough to configure 8 GPIO pins on LimeSDR-USB
+	if (LMS_GPIODirWrite(device, &gpio_dir, 1) != 0) // 1 byte buffer is enough to configure 8 GPIO pins on LimeSDR-USB
 	{
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
 		return 1;
