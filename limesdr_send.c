@@ -51,6 +51,7 @@ int main(int argc, char** argv)
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (BAND1 | BAND2) (default: BAND1)\n"
 		       "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
+					 "  -e <GPIO_BAND> (default: 0)\n"
 		       "  -i <INPUT_FILENAME> (default: stdin)\n"
 		       "  -q <CalibrationEnable> (default: 1)\n");
 		return 1;
@@ -67,7 +68,8 @@ int main(int argc, char** argv)
 	int rrc=1;
 	char* antenna = "BAND1";
 	char* input_filename = NULL;
-	bool WithCalibration=false; // Not backward compatible but prevent spike on big PA
+	uint8_t gpio_band = 0;
+	bool WithCalibration=true;
 	for ( i = 1; i < argc-1; i += 2 ) {
 		if      (strcmp(argv[i], "-f") == 0) { freq = atof( argv[i+1] ); }
 		else if (strcmp(argv[i], "-b") == 0) { bandwidth_calibrating = atof( argv[i+1] ); }
@@ -80,6 +82,7 @@ int main(int argc, char** argv)
 		else if (strcmp(argv[i], "-a") == 0) { antenna = argv[i+1]; }
 		else if (strcmp(argv[i], "-r") == 0) { rrc = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-i") == 0) { input_filename = argv[i+1]; }
+		else if (strcmp(argv[i], "-e") == 0) { gpio_band = atoi( argv[i+1] ); }
 		else if (strcmp(argv[i], "-q") == 0) { WithCalibration = atoi(argv[i+1]); }
 	}
 	if ( freq == 0 ) {
@@ -131,6 +134,28 @@ int main(int argc, char** argv)
 		.isTx = LMS_CH_TX,
 		.dataFmt = LMS_FMT_I16
 	};
+
+	// Set up GPIOs for output
+	uint8_t gpio_dir = 0x8F; // Set the 4 LSBs and the MSB to write
+	if (LMS_GPIOdirWrite(device, &gpio_dir, 1) != 0) // 1 byte buffer is enough to configure 8 GPIO pins on LimeSDR-USB
+	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1;
+	}
+
+	// Make sure PTT is not set
+	if (gpio_band >= 128)
+	{
+		gpio_band = gpio_band - 128;
+	}
+
+	// Set band
+	if (LMS_GPIOWrite(device, &gpio_band, 1)!=0) //1 byte buffer is enough to write 8 GPIO pins on LimeSDR-USB
+	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1;
+	}
+
 	if ( LMS_SetupStream(device, &tx_stream) < 0 ) {
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
 		return 1;
@@ -140,6 +165,23 @@ int main(int argc, char** argv)
 		fprintf(stderr, "SetGFIR() : %s\n", LMS_GetLastErrorMessage());
 		return -1;
 	}
+
+	// Set PTT
+	if (gpio_band < 128)
+	{
+		gpio_band = gpio_band + 128;
+	}
+
+	// Set PTT on
+	if (LMS_GPIOWrite(device, &gpio_band, 1)!=0) //1 byte buffer is enough to write 8 GPIO pins on LimeSDR-USB
+	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1
+	}
+
+	// Set Fan on
+	LMS_WriteFPGAReg(device, 0xCC, 0x01); // Enable manual fan control
+	LMS_WriteFPGAReg(device, 0xCD, 0x01); // Turn fan on
 
 	//LMS_StartStream(&tx_stream);
 	if(rrc>1)
@@ -244,6 +286,14 @@ int main(int argc, char** argv)
 	LMS_DestroyStream(device, &tx_stream);
 	free( buff );
 	fclose( fd );
+
+	// Set PTT off
+	gpio_band = gpio_band - 128;
+	LMS_GPIOWrite(device, &gpio_band, 1);
+
+	// Set Fan auto
+	LMS_WriteFPGAReg(device, 0xCC, 0x00); // Enable auto fan control
+	
 	LMS_EnableChannel( device, LMS_CH_TX, channel, false);
 	LMS_Close(device);
 	return 0;
