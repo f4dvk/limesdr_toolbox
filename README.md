@@ -94,8 +94,11 @@ $ ./limesdr_forward -f 100.1e6 -F 234.5e6
 
 Menu:
 ```
-$ ./menu.sh
+$ transpondeur
 ```
+
+GPIO Mode: GPIO 21 (Pin 40), Low for active.
+
 
 # limesdr_stopchannel
 limesdr_stopchannel allows to stop all channels on RX/TX.
