@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 	if (LMS_GPIOWrite(device, &gpio_band, 1)!=0) //1 byte buffer is enough to write 8 GPIO pins on LimeSDR-USB
 	{
 		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
-		return 1
+		return 1;
 	}
 
 	// Set Fan on
@@ -293,7 +293,7 @@ int main(int argc, char** argv)
 
 	// Set Fan auto
 	LMS_WriteFPGAReg(device, 0xCC, 0x00); // Enable auto fan control
-	
+
 	LMS_EnableChannel( device, LMS_CH_TX, channel, false);
 	LMS_Close(device);
 	return 0;
