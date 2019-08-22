@@ -30,3 +30,7 @@ cd ../../
 
 make
 make dvb
+
+alias transpondeur='/home/pi/limesdr_toolbox/menu.sh'
+
+sudo reboot
