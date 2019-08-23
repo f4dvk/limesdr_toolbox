@@ -100,7 +100,7 @@ do_stop()
 
 do_status()
 {
-	whiptail --title "Transpondeur ""$FREQ_INPUT""MHZ ""$FREQ_OUTPUT""MHZ" --msgbox "Actif" 8 78
+	whiptail --title "Transpondeur ""$FREQ_INPUT""MHZ => ""$FREQ_OUTPUT""MHZ" --msgbox "Actif" 8 78
 	do_stop
 }
 

@@ -71,8 +71,8 @@ int limesdr_set_channel(const unsigned int freq,
 			int nb_antenna = LMS_GetAntennaList(device, is_tx, channel, NULL);
 			lms_name_t list[nb_antenna];
 			LMS_GetAntennaList(device, is_tx, channel, list);
-			int antenna_found = 0;
-			int i;
+			//int antenna_found = 0;
+			//int i;
 			// Let antenna automatically selected by API
 			/*
 			for (i = 0; i < nb_antenna; i++)
