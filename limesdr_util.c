@@ -567,8 +567,11 @@ int SetGFIR(lms_device_t *device, int Upsample)
 		xcoeffs = xcoeffs4;
 	if (xcoeffs != NULL)
 	{
+    if (LMS_SetGFIRCoeff(device, LMS_CH_RX, 0, LMS_GFIR3, xcoeffs, 119) < 0)
+			fprintf(stderr, "Unable to set RX coeff GFIR3");
+
 		if (LMS_SetGFIRCoeff(device, LMS_CH_TX, 0, LMS_GFIR3, xcoeffs, 119) < 0)
-			fprintf(stderr, "Unable to set coeff GFIR3");
+			fprintf(stderr, "Unable to set TX coeff GFIR3");
 		return (LMS_SetGFIR(device, LMS_CH_TX, 0, LMS_GFIR3, true));
 	}
 	else

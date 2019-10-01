@@ -102,6 +102,13 @@ int main(int argc, char** argv)
 	}
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 
+  if(SetGFIR(device,2)<0)
+	{
+		fprintf(stderr, "SetGFIR() : %s\n", LMS_GetLastErrorMessage());
+		return -1;
+	}
+	LMS_SetGFIR(device, LMS_CH_RX, 0, LMS_GFIR3, true);
+
 	lms_stream_t rx_stream = {
 		.channel = channel,
 		.fifoSize = buffer_size * sizeof(*buff),
