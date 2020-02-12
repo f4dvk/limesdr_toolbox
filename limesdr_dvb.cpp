@@ -42,7 +42,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <netinet/in.h> /* IPPROTO_IP, sockaddr_in, htons(), 
+#include <netinet/in.h> /* IPPROTO_IP, sockaddr_in, htons(),
 htonl() */
 #include <arpa/inet.h>  /* inet_addr() */
 #include <netdb.h>
@@ -151,7 +151,7 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 			if(firstpacket<10)
 			{
 				TestLen=6*50;
-				
+
 				for(int i=0;i<TestLen*2/6;i++)
 				{
 					TestFrame[i*6]=0x0000;
@@ -160,20 +160,20 @@ unsigned int NullFiller(lms_stream_t *tx_stream, int NbPacket, bool fpga)
 					TestFrame[i*6+3]=0x5550;
 					TestFrame[i*6+4]=0xFFF0;
 					TestFrame[i*6+5]=0xAAA0;
-				
+
 				}
 
 				//memcpy(TestFrame,Frame,TestLen*2*sizeof(short));
-				
+
 				firstpacket++;
 				fprintf(stderr, "First Frame %d\n", TestLen*2);
 			}
-			
+
 			lms_stream_meta_t meta;
 			meta.flushPartialPacket = false;
 			meta.timestamp = 0;
 			meta.waitForTimestamp = false;
-			
+
 			int nb_samples = LMS_SendStream(tx_stream, TestFrame, TestLen , &meta, 1000);
 			if (TestLen != nb_samples)
 				fprintf(stderr, "TimeOUT %d\n", nb_samples);
@@ -380,7 +380,8 @@ Usage:\nlimesdr_dvb -s SymbolRate [-i File Input] [-f Fec]  [-m Modulation Type]
 -g 	      Gain (0..1) \n\
 -q 	      {0,1} 0:Use a calibration file 1:Process calibration (!HF peak!)\n\
 -F 	      Enable FPGA mapping\n\
--D        Digital Gain (FPGA Mapping only)\n\
+-D 	      Digital Gain (FPGA Mapping only)\n\
+-e 	      <GPIO_BAND> (default: 0)\n\
 -h            help (print this help).\n\
 Example : ./limesdr_dvb -s 1000 -f 7/8 -m DVBS2 -c 8PSK -p\n\
 \n",
@@ -403,6 +404,7 @@ int main(int argc, char **argv)
 	//Lime
 	bool WithCalibration = false;
 	bool FPGAMapping = false;
+	uint8_t gpio_band = 0;
 
 	while (1)
 	{
@@ -517,6 +519,9 @@ int main(int argc, char **argv)
 		case 'D':
 			dig_gain = (uint16_t)atoi(optarg) & 0x1F;
 			break;
+		case 'e':
+			gpio_band = atoi(optarg);
+			break;
 		case -1:
 			break;
 		case '?':
@@ -614,6 +619,28 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
+
+	// Set up GPIOs for output
+	uint8_t gpio_dir = 0x8F; // set the 4 LSBs and the MSB to write
+    	if (LMS_GPIODirWrite(device, &gpio_dir, 1) != 0) //1 byte buffer is enough to configure 8 GPIO pins on LimeSDR-USB
+    	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1;
+    	}
+
+	// Make sure PTT is not set
+	if (gpio_band >= 128)
+	{
+		 gpio_band = gpio_band - 128;
+	}
+
+	// Set band
+   	if (LMS_GPIOWrite(device, &gpio_band, 1)!=0) //1 byte buffer is enough to write 8 GPIO pins on LimeSDR-USB
+    	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1;
+    	}
+
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 
 	int CoeffBufferSize = ((int)sample_rate) / 1000000 + 1; // Coeff for buffer size relativ to samplerate
@@ -640,9 +667,9 @@ int main(int argc, char **argv)
 		tx_stream.fifoSize = buffer_size;
 		tx_stream.throughputVsLatency = FPGAMapping?1.0:1.0; //Need maybe more at high symbolrate : fixme !
 		tx_stream.dataFmt = lms_stream_t::LMS_FMT_I16;
-	
 
-	
+
+
 	if(FPGAMapping)
 	{
 		uint16_t FpgaCustomRegister=0;
@@ -676,15 +703,15 @@ int main(int argc, char **argv)
 
 	/*if (isapipe)
 	{
-			static unsigned char BufferDummyTS[BUFFER_SIZE*10];	
+			static unsigned char BufferDummyTS[BUFFER_SIZE*10];
 		int nin=0xffff;
 		while(nin>BUFFER_SIZE*10)
 		{
 			int ret = ioctl(fileno(input), FIONREAD, &nin);
 			fread(BufferDummyTS,1,BUFFER_SIZE*10,input);
 			fprintf(stderr,"Init Pipein=%d\n",nin);
-		}	
-		
+		}
+
 	}
 */
 
@@ -693,6 +720,24 @@ int main(int argc, char **argv)
 	bool Transition = true;
 	LMS_StartStream(&tx_stream);
 	LMS_SetNormalizedGain(device, LMS_CH_TX, channel, gain);
+
+	// Set PTT
+	if (gpio_band < 128)
+	{
+		 gpio_band = gpio_band + 128;
+	}
+
+	// Set PTT on
+   	if (LMS_GPIOWrite(device, &gpio_band, 1)!=0) //1 byte buffer is enough to write 8 GPIO pins on LimeSDR-USB
+    	{
+		fprintf(stderr, "LMS_SetupStream() : %s\n", LMS_GetLastErrorMessage());
+		return 1;
+    	}
+
+	// Set  Fan on
+   	LMS_WriteFPGAReg(device, 0xCC, 0x01);  // Enable manual fan control
+        LMS_WriteFPGAReg(device, 0xCD, 0x01);  // Turn fan on
+
 	while (!want_quit)
 	{
 
@@ -716,6 +761,13 @@ int main(int argc, char **argv)
 		}
 		DebugCount++;
 	}
+
+	// Set PTT off
+	gpio_band = gpio_band - 128;
+	LMS_GPIOWrite(device, &gpio_band, 1);
+
+	// Set  Fan auto
+	LMS_WriteFPGAReg(device, 0xCC, 0x00);  // Enable auto fan control
 
 	LMS_SetNormalizedGain(device, LMS_CH_TX, channel, 0);
 	LMS_StopStream(&tx_stream);
