@@ -408,7 +408,7 @@ int main(int argc, char **argv)
 
 	while (1)
 	{
-		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:FD:");
+		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:FD:e:");
 
 		if (a == -1)
 		{
