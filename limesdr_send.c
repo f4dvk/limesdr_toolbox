@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 		       "  -c <CHANNEL_INDEX> (default: 0)\n"
 		       "  -a <ANTENNA> (BAND1 | BAND2) (default: BAND1)\n"
 		       "  -r <RRC FILTER> (0 | 2 | 4) (default: 0)\n"
-					 "  -e <GPIO_BAND> (default: 0)\n"
+		       "  -e <GPIO_BAND> (default: 0)\n"
 		       "  -i <INPUT_FILENAME> (default: stdin)\n"
 		       "  -q <CalibrationEnable> (default: 1)\n");
 		return 1;
