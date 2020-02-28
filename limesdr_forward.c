@@ -160,6 +160,7 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
+	LMS_SetNormalizedGain( device, LMS_CH_RX, channel_input, gain_input );
 	fprintf(stderr, "sample_rate: %f\n", host_sample_rate);
 
 	if (/* limesdr_set_channel( freq_input,
@@ -180,6 +181,8 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
+
+	LMS_SetNormalizedGain( device, LMS_CH_TX, channel_output, gain_output );
 
 	if(SetGFIR(device,4)<0)
 	{
@@ -269,6 +272,8 @@ while( 1 )
 	free( buff );
 	LMS_EnableChannel( device, LMS_CH_TX, channel_output, false);
 	*/
+	LMS_SetNormalizedGain( device, LMS_CH_TX, channel_output, 0 );
+	LMS_SetNormalizedGain( device, LMS_CH_RX, channel_input, 0 );
 	LMS_Close(device);
 	return 0;
 }
