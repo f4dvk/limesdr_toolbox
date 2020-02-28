@@ -136,6 +136,7 @@ int main(int argc, char** argv)
 	}
 
 	LMS_StartStream(&rx_stream);
+	LMS_SetNormalizedGain( device, LMS_CH_RX, channel, gain );
 	while( 1 ) {
 		int nb_samples = LMS_RecvStream( &rx_stream, buff, buffer_size, NULL, 1000 );
 		if ( nb_samples < 0 ) {
@@ -145,6 +146,7 @@ int main(int argc, char** argv)
 		fwrite( buff, sizeof( *buff ), nb_samples, fd );
 		fflush( fd );
 	}
+	LMS_SetNormalizedGain( device, LMS_CH_RX, channel, 0 );
 	LMS_StopStream(&rx_stream);
 	LMS_DestroyStream(device, &rx_stream);
 	free( buff );

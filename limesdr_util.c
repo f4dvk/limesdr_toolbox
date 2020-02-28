@@ -115,7 +115,7 @@ int limesdr_set_channel(const unsigned int freq,
 				fprintf(stderr, "LMS_Calibrate() : %s\n", LMS_GetLastErrorMessage());
 				return -1;
 			}
-				//LMS_SetNormalizedGain(device, is_tx, channel, 0);
+				LMS_SetNormalizedGain(device, is_tx, channel, 0);
 				//SaveCal(device, "limemini.cal");
     	if (LMS_SaveConfig(device, "limemini.cal") < 0)
 			{
