@@ -397,10 +397,11 @@ int main(int argc, char **argv)
 	bool WithCalibration = false;
 	bool FPGAMapping = false;
 	uint8_t gpio_band = 0;
+	bool LimeSDR_USB = false;
 
 	while (1)
 	{
-		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:FD:e:");
+		a = getopt(argc, argv, "i:s:f:c:hf:m:c:pr:dvt:g:q:FD:e:U");
 
 		if (a == -1)
 		{
@@ -514,6 +515,9 @@ int main(int argc, char **argv)
 		case 'e':
 			gpio_band = atoi(optarg);
 			break;
+		case 'U':
+			LimeSDR_USB = true;
+			break;
 		case -1:
 			break;
 		case '?':
@@ -587,7 +591,20 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Using file mode\n");
 
 	// Init LimeSDR
-	char *antenna = "BAND1";
+	// Determine correct Antenna first
+  char const *antenna = "BAND1";  // correct for < 2 GHz LimeSDR USB, or > 2 GHz LimeSDR Mini or LMN
+
+  if ((LimeSDR_USB == true) && (freq > 2000000000))
+  {
+    antenna = "BAND2";
+  }
+  if ((LimeSDR_USB == false) && (freq < 2000000000))
+  {
+    antenna = "BAND2";
+  }
+
+  // printf("\n\nAntenna: %s\n", antenna);
+
 	double host_sample_rate;
 
 	//if (FPGAMapping)		SymbolRate = SymbolRate / 2;
@@ -648,7 +665,7 @@ int main(int argc, char **argv)
 	{
 		buffer_size = 8000 * upsample * CoeffBufferSize; //FixMe for DVB-S
 		if (FPGAMapping)
-			buffer_size = 272 * 10000; //FixMe
+			buffer_size = 272 * 10000/16; //(FixMe) /16 added by G8GKQ = 170,000
 	}
 
 	 lms_stream_t tx_stream;
